@@ -1,0 +1,27 @@
+# libpdf
+
+A pure-Dart PDF library written from the specification (ISO 32000-2,
+PDF 2.0; output stays readable by PDF 1.7 readers by declaring the lowest
+version a document needs). It runs wherever Dart runs, including the web:
+no native code, and no dependencies beyond the Dart team's packages.
+
+Layers, each public and usable alone:
+
+1. **Objects and writer.** The COS object model as sealed types, a writer
+   with Flate compression (pure Dart), cross-reference tables or streams,
+   object streams, document information, and a deterministic mode (fixed
+   identifiers and dates) for reproducible output and golden tests.
+2. **Drawing.** Content streams through a typed graphics API: paths,
+   colors, transforms, clipping, transparency; text with embedded fonts;
+   images; links, destinations, outlines and page labels.
+3. **Layout.** A typed box tree is measured, broken into lines and pages,
+   and painted. Line breaking and page breaking are pluggable strategies:
+   libpdf ships defaults (first fit, Knuth-Plass), and callers can supply
+   their own to reproduce another engine's behavior.
+
+Status: in development; not published to pub.dev. See
+[`adr/0001-layered-design.md`](adr/0001-layered-design.md) for the design.
+
+## License
+
+MIT; see [LICENSE](LICENSE).

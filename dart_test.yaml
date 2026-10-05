@@ -1,0 +1,4 @@
+tags:
+  pdf-tools:
+    # Tests that run qpdf or poppler; skipped where they are missing.
+    skip: false

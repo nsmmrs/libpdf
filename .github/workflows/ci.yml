@@ -1,0 +1,56 @@
+name: CI
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+permissions: read-all
+jobs:
+  dart:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Set up Dart
+      uses: dart-lang/setup-dart@v1
+    - name: Install Dart dependencies
+      run: dart pub get
+    - name: Analyze Dart code
+      run: dart analyze --fatal-infos .
+    - name: Check Dart formatting
+      run: dart format --output=none --set-exit-if-changed .
+    - name: Run Dart tests
+      run: dart test
+  web:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Set up Dart
+      uses: dart-lang/setup-dart@v1
+    - name: Install Dart dependencies
+      run: dart pub get
+    - name: Compile the library to JavaScript
+      run: dart compile js -o build/web_check.js tool/web_check.dart
+    - name: Check the package for pub (dry run, nothing is published)
+      run: dart pub publish --dry-run
+  pdf-tools:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Set up Dart
+      uses: dart-lang/setup-dart@v1
+    - name: Install qpdf and poppler
+      run: sudo apt-get update -q && sudo apt-get install -yq qpdf poppler-utils
+    - name: Install Dart dependencies
+      run: dart pub get
+    - name: Run the tests that check output with qpdf and poppler
+      run: dart test --tags pdf-tools
