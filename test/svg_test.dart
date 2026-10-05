@@ -106,7 +106,8 @@ void main() {
 </svg>''');
     expect(svg.warnings, isEmpty);
     final pdf = File('${dir.path}/text.pdf')..writeAsBytesSync(svgPdf(svg));
-    if (!_has('pdftotext')) return;
+    // Positions through poppler, where the pdf-tools job installs it.
+    if (!_tools || !_has('pdftotext')) return;
     final html =
         Process.runSync('pdftotext', ['-bbox', pdf.path, '-']).stdout as String;
     final words = {
