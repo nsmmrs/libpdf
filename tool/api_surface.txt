@@ -775,6 +775,7 @@ final class SpotColor extends PdfColor
   int hashCode
 final class StandardFont extends PdfFont
   List<ShapedGlyph> shape(String text, {bool kerning = true, bool ligatures = false})
+  List<int> boundingBox
   List<int> encode(List<ShapedGlyph> glyphs)
   StandardFont.named(String name)
   String name

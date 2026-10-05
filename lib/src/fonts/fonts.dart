@@ -132,6 +132,10 @@ final class StandardFont extends PdfFont {
   @override
   double get lineGap => 0;
 
+  /// The font bounding box from the AFM file, in 1000ths of the em:
+  /// `[left, bottom, right, top]`.
+  List<int> get boundingBox => List.unmodifiable(_data.bbox);
+
   @override
   double get capHeight => _data.capHeight.toDouble();
 
