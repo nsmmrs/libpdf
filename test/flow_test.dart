@@ -260,6 +260,16 @@ void main() {
       ]);
     });
 
+    test('a forced page break leaves the top of a page blank', () {
+      final result = FlowLayout(template: rowsTemplate(4)).layout([
+        para('one'),
+        const BreakBox.page(),
+        const BreakBox.page(force: true),
+        para('two'),
+      ]);
+      expect(result.pageCount, 3);
+    });
+
     test('columns: of the page, and a column set', () {
       final (pdf, result) = render([
         para(lines(6)),

@@ -91,3 +91,5 @@
   `StandardFont.boundingBox`.
 - `BoxStyle.decoration`: a callback painting over each piece of a block,
   told whether the piece is where the block starts and ends.
+- `BreakBox.page(force: true)`: a page break made even at the top of a
+  region.

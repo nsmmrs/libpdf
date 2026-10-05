@@ -219,9 +219,10 @@ final class BoxStyle
   void Function(PdfPage, PdfRect, {required bool first, required bool last})? decoration
 final class BreakBox extends LayoutBox
   BreakBox.column()
-  BreakBox.page({String? template})
+  BreakBox.page({String? template, bool force = false})
   BreakKind kind
   String? template
+  bool force
 final class CloseSegment extends PathSegment
   CloseSegment()
 final class CmykColor extends PdfColor

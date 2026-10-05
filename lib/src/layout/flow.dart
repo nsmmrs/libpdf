@@ -310,15 +310,17 @@ enum BreakKind {
 /// A forced break.
 final class BreakBox extends LayoutBox {
   /// A break to the next page, made from the template named [template]
-  /// (the layout's choice when null).
-  const new page({this.template})
+  /// (the layout's choice when null); ignored at the top of a region
+  /// unless [force]d (which leaves the region blank).
+  const new page({this.template, this.force = false})
     : kind = BreakKind.page,
       super._(const BoxStyle());
 
-  /// A break to the next column.
+  /// A break to the next column (ignored at the top of a region).
   const new column()
     : kind = BreakKind.column,
       template = null,
+      force = false,
       super._(const BoxStyle());
 
   /// The kind of break.
@@ -326,6 +328,9 @@ final class BreakBox extends LayoutBox {
 
   /// The template of the next page.
   final String? template;
+
+  /// Whether the break is made even at the top of a region.
+  final bool force;
 }
 
 /// Boxes flowing through [count] columns, column by column, from where
@@ -1026,7 +1031,8 @@ final class _Pass {
       final child = box.children[i];
       final childAtTop = atTopInside && cursor == 0;
       if (child is BreakBox) {
-        if (childAtTop) continue; // a break at the top of a region: none
+        // A break at the top of a region: none, unless forced.
+        if (childAtTop && !child.force) continue;
         final rest = box.children.sublist(i + 1);
         return split(rest, hit: child);
       }
