@@ -165,6 +165,9 @@ void main() {
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 20"/>',
     );
     expect((boxed.width, boxed.height), (30, 15));
+    expect(svg.rootAttribute('width'), '2in');
+    expect(boxed.rootAttribute('viewBox'), '0 0 40 20');
+    expect(boxed.rootAttribute('width'), isNull);
     expect(() => SvgImage.parse('<html/>'), throwsFormatException);
     expect(() => SvgImage.parse('<svg'), throwsFormatException);
   });

@@ -95,3 +95,4 @@
   region.
 - `ColumnWidth.computed`: a table column whose width is computed from the
   table's width.
+- `SvgImage.rootAttribute`: the root element's attributes as written.

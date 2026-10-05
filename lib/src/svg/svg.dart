@@ -139,6 +139,10 @@ final class SvgImage implements Graphic {
 
   final Set<String> _warnings = {};
 
+  /// The value of the root `<svg>` element's attribute [name] as written
+  /// (`width`, `height`, `viewBox`, say), for sizing the image another way.
+  String? rootAttribute(String name) => _root.getAttribute(name);
+
   /// What the image uses that isn't drawn (or isn't drawn exactly), once
   /// each; drawing adds to them.
   List<String> get warnings => _warnings.toList();
