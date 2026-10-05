@@ -54,9 +54,9 @@ jobs:
       uses: actions/checkout@v4
     - name: Set up Dart
       uses: dart-lang/setup-dart@v1
-    - name: Install qpdf and poppler
-      run: sudo apt-get update -q && sudo apt-get install -yq qpdf poppler-utils
+    - name: Install qpdf, poppler and ImageMagick
+      run: sudo apt-get update -q && sudo apt-get install -yq qpdf poppler-utils imagemagick
     - name: Install Dart dependencies
       run: dart pub get
-    - name: Run the tests that check output with qpdf and poppler
+    - name: Run the tests that check output with qpdf, poppler and ImageMagick
       run: dart test --tags pdf-tools

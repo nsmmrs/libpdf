@@ -18,3 +18,10 @@
   text stays extractable; and the 14 standard fonts with metrics, kerning
   and WinAnsi encoding generated from the Adobe AFM files. CFF fonts are
   embedded whole for now.
+- Images: JPEG files embedded as they are (DCTDecode; gray, RGB and CMYK,
+  baseline and progressive, Adobe-inverted CMYK, EXIF orientation
+  reported); PNG files of every color type and bit depth, embedded as they
+  are when PDF can show them (FlateDecode with a PNG predictor), decoded
+  otherwise: interlaced images, alpha split into a soft mask, palette
+  transparency, color-key transparency, embedded ICC profiles; damaged
+  files rejected. Checked against PngSuite by rendering with poppler.

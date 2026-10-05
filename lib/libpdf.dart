@@ -9,6 +9,8 @@ export 'src/flate.dart' show adler32, deflate, inflate, zlibDecode, zlibEncode;
 export 'src/fonts/fonts.dart'
     show EmbeddedFont, PdfFont, ShapedGlyph, StandardFont;
 export 'src/fonts/opentype.dart' show FontFormatException, OpenTypeFont;
+export 'src/images/images.dart'
+    show ImageFormatException, JpegImage, PdfImage, PngColorType, PngImage;
 export 'src/md5.dart' show md5;
 export 'src/objects.dart'
     show
