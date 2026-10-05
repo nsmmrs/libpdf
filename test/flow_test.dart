@@ -152,6 +152,31 @@ void main() {
     expect(result.anchors['line-7']!.page, 1);
   });
 
+  test('a block reserves its bottom padding only below its last child', () {
+    // 80 points a region; lines of 10 after a gap of 3.
+    LayoutResult layout(int count) =>
+        FlowLayout(
+          template: const PageTemplate(
+            PdfRect(0, 0, 100, 100),
+            margins: EdgeInsets.all(10),
+          ),
+        ).layout([
+          BlockBox([
+            CustomBox(_Lines(count, 0)),
+          ], style: const BoxStyle(padding: EdgeInsets(bottom: 15))),
+        ]);
+    // Split: the first page takes 7 lines, as if there were no padding.
+    var result = layout(20);
+    expect(result.anchors['line-6']!.page, 0);
+    expect(result.anchors['line-7']!.page, 1);
+    // Whole but for the padding: the last line goes along with it.
+    result = layout(7);
+    expect(result.anchors['line-5']!.page, 0);
+    expect(result.anchors['line-6']!.page, 1);
+    // Whole with the padding: one page.
+    expect(layout(6).pageCount, 1);
+  });
+
   test('decorations see each piece of a block', () {
     final pieces = <(double, bool, bool)>[];
     FlowLayout(template: rowsTemplate(4))
@@ -312,7 +337,7 @@ void main() {
     test('decorations: background and borders, open where a block splits', () {
       final (pdf, _) = render([
         BlockBox(
-          [para(lines(6))],
+          [para(lines(9))],
           style: const BoxStyle(
             background: PdfColor.rgb(1, 0.9, 0.9),
             border: Border(
@@ -323,7 +348,9 @@ void main() {
           ),
         ),
       ], rowsTemplate(4));
-      // Each page holds two of the six lines.
+      // Three of the nine lines below the top border and padding, four on
+      // the middle page (no padding where the block continues), two above
+      // the bottom padding and border.
       final [first, middle, last] = [
         for (final p in [1, 2, 3]) _raster(pdf, p),
       ];

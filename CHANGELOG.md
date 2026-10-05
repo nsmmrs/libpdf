@@ -48,7 +48,8 @@
 - Layout, pages: a box tree (blocks with margins, padding, borders and
   backgrounds; paragraphs; images; spacers; drawings; page and column
   breaks; column sets) flowing into the regions of page templates (with
-  columns), split where needed (a split block's border stays open), with
+  columns), split where needed (a split block's border stays open, and
+  its bottom padding and border take room only below its last child), with
   keep-together, keep-with-next, orphans and widows decided by a
   `PageBreaker` strategy; running headers and footers that see the page
   number, the page count and running marks; anchors that become named

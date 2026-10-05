@@ -946,7 +946,7 @@ final class _Pass {
     final style = box.style;
     final continued = box._continued;
     final top =
-        (atTop || continued ? 0 : style.margin.top) +
+        (atTop || continued ? 0.0 : style.margin.top) +
         (continued ? 0 : style.border.widths.top + style.padding.top);
     final bottom = style.padding.bottom + style.border.widths.bottom;
     final inner =
@@ -961,7 +961,41 @@ final class _Pass {
         return _Fit.moved(box);
       }
     }
-    final room = available - top - bottom;
+    // The bottom padding and border close the block: a page break inside
+    // it reserves no room for them, they need room only below its last
+    // child (if they don't fit there, the block is placed again with room
+    // for them throughout).
+    final full = available - top;
+    final fit = _blockChildren(box, width, inner, full, top, atTop: atTop);
+    if (fit.rest == null &&
+        fit.hit == null &&
+        bottom > 0 &&
+        fit.height - style.margin.bottom > available + 1e-6) {
+      return _blockChildren(
+        box,
+        width,
+        inner,
+        full - bottom,
+        top,
+        atTop: atTop,
+      );
+    }
+    return fit;
+  }
+
+  /// [box]'s children placed in [room] below [top]: the block split where
+  /// they don't fit, else the whole block.
+  _Fit _blockChildren(
+    BlockBox box,
+    double width,
+    double inner,
+    double room,
+    double top, {
+    required bool atTop,
+  }) {
+    final style = box.style;
+    final continued = box._continued;
+    final bottom = style.padding.bottom + style.border.widths.bottom;
     final children = <(double, _Placed)>[];
     var cursor = 0.0;
     final atTopInside = atTop && top == 0;
