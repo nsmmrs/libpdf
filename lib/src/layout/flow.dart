@@ -693,7 +693,10 @@ final class DefaultPageBreaker implements PageBreaker {
 
 /// What a running header or footer knows about its page.
 final class PageInfo {
-  new _(this.number, this.count, this.label, this._marks);
+  new _(this.number, this.count, this.label, this._marks, this.template);
+
+  /// The template of the page.
+  final PageTemplate template;
 
   /// The page number (1-based).
   final int number;
@@ -795,6 +798,7 @@ final class FlowLayout {
     String Function(int number)? pageLabel,
     this.maxPasses = 5,
     this.startTemplate,
+    this.keepTemplate = false,
   }) : templates = {null: ?template, ...?templates},
        pageLabel = pageLabel ?? _decimal {
     if (this.templates[null] == null) {
@@ -819,6 +823,12 @@ final class FlowLayout {
 
   /// The name of the first page's template (the default when null).
   final String? startTemplate;
+
+  /// Whether a page break's template stays in effect for the pages after
+  /// it (until another break names one), rather than for the next page
+  /// alone. A break naming another template at the top of a page that's
+  /// still empty then replaces that page.
+  final bool keepTemplate;
 
   static String _decimal(int number) => '$number';
 
@@ -859,18 +869,26 @@ final class _Pass {
     var guard = 0;
     while (rest != null) {
       final page = _Page(layout.templates[template] ?? layout.templates[null]!);
-      template = null;
-      for (final region in page.template.regions) {
+      if (!layout.keepTemplate) template = null;
+      var discard = false;
+      for (final (i, region) in page.template.regions.indexed) {
         _regionHeight = region.height;
         final fit = _place(rest!, region.width, region.height, atTop: true);
         page.placed.add((region, fit.placed));
         rest = fit.rest;
         if (rest == null) break;
         if (fit.hit case BreakBox(kind: BreakKind.page, template: final name)) {
-          template = name;
+          if (name != null || !layout.keepTemplate) template = name;
+          // A break to another template on a page still empty replaces it.
+          discard =
+              layout.keepTemplate &&
+              name != null &&
+              i == 0 &&
+              (fit.placed?.height ?? 0) == 0;
           break;
         }
       }
+      if (discard) continue;
       pages.add(page);
       if (++guard > 100000) throw StateError('layout does not progress');
     }
@@ -1065,8 +1083,13 @@ final class _Pass {
       final child = box.children[i];
       final childAtTop = atTopInside && cursor == 0;
       if (child is BreakBox) {
-        // A break at the top of a region: none, unless forced.
-        if (childAtTop && !child.force) continue;
+        // A break at the top of a region: none, unless forced (or a break
+        // to a template, which replaces an empty page).
+        if (childAtTop &&
+            !child.force &&
+            (child.template == null || !layout.keepTemplate)) {
+          continue;
+        }
         final rest = box.children.sublist(i + 1);
         return split(rest, hit: child);
       }
@@ -1751,16 +1774,21 @@ final class _Pass {
     final inner = width - style.margin.horizontal;
     final columnWidth = (inner - box.gap * (box.count - 1)) / box.count;
     LayoutBox? rest = BlockBox(box.children);
+    // Too little room for the first box: the set goes on in the next
+    // region.
+    if (!atTop &&
+        !box._continued &&
+        box.children.isNotEmpty &&
+        _minHeight(box.children.first, columnWidth) > available - top + 1e-6) {
+      return _Fit.moved(box);
+    }
     final columns = <(double, _Placed)>[];
     var height = 0.0;
     BreakBox? hit;
     for (var c = 0; c < box.count && rest != null; c++) {
-      final fit = _place(
-        rest,
-        columnWidth,
-        available - top,
-        atTop: c > 0 || atTop,
-      );
+      // Each column starts at the top of a region (a break or a margin
+      // at the top of the first one counts for nothing too).
+      final fit = _place(rest, columnWidth, available - top, atTop: true);
       if (fit.placed == null) {
         if (c == 0) return _Fit.moved(box);
         break;
@@ -2394,6 +2422,7 @@ final class LayoutResult {
         _pages.length,
         _layout.pageLabel(i + 1),
         marks,
+        page.template,
       );
       final template = page.template;
       final pdfPage = document.addPage(template.size);

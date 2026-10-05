@@ -316,13 +316,14 @@ final class FixedColumnWidth extends ColumnWidth
   FixedColumnWidth(double points)
   double points
 final class FlowLayout
-  FlowLayout({PageTemplate? template, Map<String?, PageTemplate>? templates, PageBreaker pageBreaker = const DefaultPageBreaker(), LineBreaker lineBreaker = const FirstFitLineBreaker(), String Function(int)? pageLabel, int maxPasses = 5, String? startTemplate})
+  FlowLayout({PageTemplate? template, Map<String?, PageTemplate>? templates, PageBreaker pageBreaker = const DefaultPageBreaker(), LineBreaker lineBreaker = const FirstFitLineBreaker(), String Function(int)? pageLabel, int maxPasses = 5, String? startTemplate, bool keepTemplate = false})
   LayoutResult layout(List<LayoutBox> content)
   LineBreaker lineBreaker
   Map<String?, PageTemplate> templates
   PageBreaker pageBreaker
   String Function(int) pageLabel
   String? startTemplate
+  bool keepTemplate
   int maxPasses
 final class FontFormatException implements Exception
   FontFormatException(String message)
@@ -474,6 +475,7 @@ final class OpenTypeFont
   int? underlineThickness (settable)
   int? xHeight (settable)
 final class PageInfo
+  PageTemplate template
   String label
   String? mark(String name)
   int count

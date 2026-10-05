@@ -96,6 +96,11 @@
 - `ColumnWidth.computed`: a table column whose width is computed from the
   table's width.
 - `SvgImage.rootAttribute`: the root element's attributes as written.
+- `FlowLayout(keepTemplate: true)`: a page break's template stays in
+  effect for the pages after it, and a break to a template at the top of
+  an empty page replaces it; `PageInfo.template` names a page's template.
+  The top of each column of a `ColumnsBox` is a region top (breaks and
+  top margins there count for nothing).
 - `kernTablePair(subtable:)` and `EmbeddedFont.parse(kernTableSubtable:)`:
   kerning from one subtable of the `kern` table alone (Prawn kerns with
   the first).

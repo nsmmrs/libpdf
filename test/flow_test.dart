@@ -177,6 +177,38 @@ void main() {
     expect(layout(6).pageCount, 1);
   });
 
+  test('kept templates: a break template lasts; at the top it replaces', () {
+    const portrait = PageTemplate(PdfRect(0, 0, 100, 200));
+    const landscape = PageTemplate(PdfRect(0, 0, 200, 100));
+    List<double> widths(List<LayoutBox> boxes) {
+      final document = PdfDocument();
+      final pages = FlowLayout(
+        template: portrait,
+        templates: {'landscape': landscape, 'portrait': portrait},
+        keepTemplate: true,
+      ).layout(boxes).render(document);
+      return [for (final page in pages) page.width];
+    }
+
+    // The landscape pages go on until a break names another template.
+    expect(
+      widths([
+        para('one'),
+        const BreakBox.page(template: 'landscape'),
+        para('two'),
+        const BreakBox.page(),
+        para('three'),
+        const BreakBox.page(template: 'portrait'),
+        para('four'),
+      ]),
+      [100, 200, 200, 100],
+    );
+    // At the top of an empty page, the break makes it a landscape page.
+    expect(widths([const BreakBox.page(template: 'landscape'), para('one')]), [
+      200,
+    ]);
+  });
+
   test('decorations see each piece of a block', () {
     final pieces = <(double, bool, bool)>[];
     FlowLayout(template: rowsTemplate(4))
@@ -288,6 +320,22 @@ void main() {
         ColumnsBox([para(lines(4, 'c'))]),
       ], rowsTemplate(3));
       expect(pageTexts(set, 1).single, ['intro', 'c1 c3', 'c2 c4']);
+    });
+
+    test('a column set: its top counts as a region top', () {
+      // A column break first thing in the set is no break.
+      final (set, _) = render([
+        para('intro'),
+        ColumnsBox([const BreakBox.column(), para(lines(4, 'c'))]),
+      ], rowsTemplate(3));
+      expect(pageTexts(set, 1).single, ['intro', 'c1 c3', 'c2 c4']);
+      // No room for a line: the set starts on the next page.
+      final (late, result) = render([
+        para(lines(3)),
+        ColumnsBox([para(lines(2, 'c'))]),
+      ], rowsTemplate(3));
+      expect(result.pageCount, 2);
+      expect(pageTexts(late, 2)[1], ['c1', 'c2']);
     });
 
     test('headers and footers: page numbers, count, running marks', () {
