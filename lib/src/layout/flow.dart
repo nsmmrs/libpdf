@@ -867,6 +867,9 @@ final class _Pass {
     LayoutBox? rest = BlockBox(content);
     var template = layout.startTemplate;
     var guard = 0;
+    // What was placed on a page that was replaced (anchors, marks: it had
+    // no height), carried to the page replacing it.
+    final carried = <_Placed>[];
     while (rest != null) {
       final page = _Page(layout.templates[template] ?? layout.templates[null]!);
       if (!layout.keepTemplate) template = null;
@@ -888,7 +891,17 @@ final class _Pass {
           break;
         }
       }
-      if (discard) continue;
+      if (discard) {
+        carried.addAll([for (final (_, placed) in page.placed) ?placed]);
+        continue;
+      }
+      if (carried.isNotEmpty) {
+        final region = page.template.regions.first;
+        page.placed.insertAll(0, [
+          for (final placed in carried) (region, placed),
+        ]);
+        carried.clear();
+      }
       pages.add(page);
       if (++guard > 100000) throw StateError('layout does not progress');
     }

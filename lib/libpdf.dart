@@ -132,8 +132,7 @@ export 'src/objects.dart'
         PdfString,
         formatNumber,
         pdfDocEncode;
-export 'src/reader/reader.dart'
-    show ImportedPage, PdfFile, PdfFormatException;
+export 'src/reader/reader.dart' show ImportedPage, PdfFile, PdfFormatException;
 export 'src/svg/path.dart'
     show
         CloseSegment,

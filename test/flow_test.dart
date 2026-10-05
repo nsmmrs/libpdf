@@ -207,6 +207,19 @@ void main() {
     expect(widths([const BreakBox.page(template: 'landscape'), para('one')]), [
       200,
     ]);
+    // An anchor on the page it replaces goes along to the new page.
+    final result =
+        FlowLayout(
+          template: portrait,
+          templates: {'landscape': landscape, 'portrait': portrait},
+          keepTemplate: true,
+        ).layout([
+          const BlockBox([], style: BoxStyle(anchor: 'start')),
+          const BreakBox.page(template: 'landscape'),
+          para('one'),
+        ]);
+    expect(result.pageCount, 1);
+    expect(result.anchors['start']!.page, 0);
   });
 
   test('a trailing page break makes no empty page', () {

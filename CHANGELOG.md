@@ -116,3 +116,5 @@
   pages; an `ImportedPage` paints into another document as a form XObject
   of the page's content, with its resources copied once (`PdfCanvas.page`),
   turned as the page is displayed. Encrypted files are rejected.
+- A template break that replaces an empty page carries what was placed on
+  it (anchors, marks) to the page replacing it.
