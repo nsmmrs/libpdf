@@ -38,7 +38,13 @@ jobs:
     - name: Install Dart dependencies
       run: dart pub get
     - name: Compile the library to JavaScript
-      run: dart compile js -o build/web_check.js tool/web_check.dart
+      run: dart compile js -O2 -o build/web_check.js tool/web_check.dart
+    - name: Check that JavaScript writes the same bytes as the VM
+      run: |
+        vm="$(dart run tool/web_check.dart)"
+        js="$(node build/web_check.js)"
+        echo "VM: $vm"; echo "JS: $js"
+        test "$vm" = "$js"
     - name: Check the package for pub (dry run, nothing is published)
       run: dart pub publish --dry-run
   pdf-tools:
