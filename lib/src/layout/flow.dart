@@ -511,6 +511,10 @@ sealed class ColumnWidth {
 
   /// As wide as the content wants, within what is available.
   const factory auto() = AutoColumnWidth;
+
+  /// The width [width] gives for the table's width.
+  const factory computed(double Function(double tableWidth) width) =
+      ComputedColumnWidth;
 }
 
 /// A column of a fixed width.
@@ -535,6 +539,16 @@ final class FractionColumnWidth extends ColumnWidth {
 final class AutoColumnWidth extends ColumnWidth {
   /// An auto column.
   const new() : super._();
+}
+
+/// A column whose width depends on the table's (a fixed column once the
+/// table's width is known).
+final class ComputedColumnWidth extends ColumnWidth {
+  /// A column [width] wide for the table's width.
+  const new(this.width) : super._();
+
+  /// The width for the table's width.
+  final double Function(double tableWidth) width;
 }
 
 /// A table: rows of cells in columns. Header rows repeat at the top of
@@ -1351,11 +1365,15 @@ final class _Pass {
     final autos = <int>[];
     final fractions = <int>[];
     var fixed = 0.0;
+    final whole = table.width ?? available;
     for (final (c, column) in table.columns.indexed) {
       switch (column) {
         case FixedColumnWidth(:final points):
           widths[c] = points;
           fixed += points;
+        case ComputedColumnWidth(:final width):
+          widths[c] = math.max(0, width(whole));
+          fixed += widths[c];
         case FractionColumnWidth():
           fractions.add(c);
         case AutoColumnWidth():
@@ -1364,7 +1382,7 @@ final class _Pass {
     }
     double sum(List<int> columns, List<double> values) =>
         columns.fold(0, (s, c) => s + values[c]);
-    var total = table.width ?? available;
+    var total = whole;
     if (table.shrinkToContent && fractions.isEmpty) {
       total = math.min(total, fixed + sum(autos, maxs));
     }

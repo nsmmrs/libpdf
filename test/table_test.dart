@@ -107,6 +107,22 @@ void main() {
     expect(word(all, 'c').x, closeTo(134, 0.5));
   });
 
+  test('computed columns take a width from the table', () {
+    final (pdf, _) = render([
+      TableBox(
+        [
+          row([cell('a'), cell('b')]),
+        ],
+        columns: [
+          ColumnWidth.computed((width) => width / 4),
+          const ColumnWidth.fraction(1),
+        ],
+      ),
+    ]);
+    // A quarter of 260, then the rest.
+    expect(word(words(pdf), 'b').x, closeTo(20 + 65 + 4, 0.5));
+  });
+
   test('auto columns share the width by their content', () {
     final (pdf, _) = render([
       TableBox(

@@ -93,3 +93,5 @@
   told whether the piece is where the block starts and ends.
 - `BreakBox.page(force: true)`: a page break made even at the top of a
   region.
+- `ColumnWidth.computed`: a table column whose width is computed from the
+  table's width.

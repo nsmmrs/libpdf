@@ -870,6 +870,7 @@ final class XyzDestination extends PdfDestination
 int adler32(List<int> data)
 sealed class ColumnWidth
   ColumnWidth.auto()
+  ColumnWidth.computed(double Function(double) width)
   ColumnWidth.fixed(double points)
   ColumnWidth.fraction(double weight)
 sealed class InlineContent
