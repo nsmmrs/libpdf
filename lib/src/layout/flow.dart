@@ -94,6 +94,17 @@ final class Border {
   static const Border none = Border();
 }
 
+/// Paints extra decoration over a block's background and border, before
+/// its content: [rect] is the part of the block (inside its margins) on
+/// [page]; [first] and [last] tell whether it is where the block starts
+/// and ends (a block split across pages has a piece on each).
+typedef BoxDecoration = void Function(
+  PdfPage page,
+  PdfRect rect, {
+  required bool first,
+  required bool last,
+});
+
 /// How a box is spaced, decorated and kept with others.
 @immutable
 final class BoxStyle {
@@ -107,6 +118,7 @@ final class BoxStyle {
     this.keepWithNext = false,
     this.anchor,
     this.marks = const {},
+    this.decoration,
   });
 
   /// The space outside the border.
@@ -134,6 +146,9 @@ final class BoxStyle {
   /// Running marks the box sets where it starts (a chapter title for the
   /// running header).
   final Map<String, String> marks;
+
+  /// Extra decoration of a block, painted over its background and border.
+  final BoxDecoration? decoration;
 }
 
 /// How a box narrower than its region sits in it.
@@ -1876,6 +1891,12 @@ final class _PlacedBlock extends _Placed {
       }
       canvas.restore();
     }
+    style.decoration?.call(
+      painter.page,
+      rect,
+      first: !openTop,
+      last: !openBottom,
+    );
     for (final (offset, child) in children) {
       child.paint(painter, x + _contentLeft, top - _contentTop - offset);
     }

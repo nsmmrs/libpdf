@@ -88,3 +88,5 @@
   truncated rather than rounded (text then lines up with engines that
   truncate); OS/2 typographic metrics; `kern` table pairs;
   `StandardFont.boundingBox`.
+- `BoxStyle.decoration`: a callback painting over each piece of a block,
+  told whether the piece is where the block starts and ends.

@@ -53,6 +53,7 @@ export 'src/layout/flow.dart'
         BlockBox,
         Border,
         BoxAlign,
+        BoxDecoration,
         BoxStyle,
         BreakBox,
         BreakKind,

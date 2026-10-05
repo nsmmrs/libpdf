@@ -152,6 +152,23 @@ void main() {
     expect(result.anchors['line-7']!.page, 1);
   });
 
+  test('decorations see each piece of a block', () {
+    final pieces = <(double, bool, bool)>[];
+    FlowLayout(template: rowsTemplate(4))
+        .layout([
+          BlockBox(
+            [para(lines(6))],
+            style: BoxStyle(
+              decoration: (page, rect, {required first, required last}) =>
+                  pieces.add((rect.height, first, last)),
+            ),
+          ),
+        ])
+        .render(PdfDocument());
+    // Four lines, then two (widows keep two together).
+    expect(pieces.map((p) => (p.$2, p.$3)), [(true, false), (false, true)]);
+  });
+
   group('rendered', skip: _tools ? false : 'needs poppler', () {
     test('a paragraph splits across pages, keeping its lines in order', () {
       final (pdf, result) = render([para(lines(10))], rowsTemplate(4));
