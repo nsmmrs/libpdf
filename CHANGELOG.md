@@ -62,3 +62,5 @@
   (background and border behind a run). A sample document with golden
   renders, and a benchmark (`benchmark/layout_benchmark.dart`, about 240
   pages a second on a laptop).
+- Font fallback chains: a text run's characters its font lacks are set in
+  the first of its fallback fonts that has them.

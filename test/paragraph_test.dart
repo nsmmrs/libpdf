@@ -298,4 +298,27 @@ void main() {
         : 'needs poppler',
     tags: ['pdf-tools'],
   );
+
+  test('characters a font lacks are set in a fallback font', () {
+    final mplus = EmbeddedFont.parse(
+      File('test/fonts/mplus1p-regular-multilingual.ttf').readAsBytesSync(),
+    );
+    final line = const FirstFitLineBreaker()
+        .breakLines(
+          Paragraph([
+            TextRun('Hello Привет ok', body, fallbackFonts: [mplus]),
+          ]),
+          (_) => 300,
+        )
+        .single;
+    final fragments = [
+      for (final f in line.fragments)
+        if (f is TextFragment) (f.text, f.style.font.name),
+    ];
+    expect(fragments, [
+      ('Hello ', 'Helvetica'),
+      ('Привет ', mplus.name),
+      ('ok', 'Helvetica'),
+    ]);
+  });
 }

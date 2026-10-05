@@ -4,6 +4,7 @@ library;
 import 'package:libpdf/src/drawing/canvas.dart';
 import 'package:libpdf/src/drawing/color.dart';
 import 'package:libpdf/src/drawing/document.dart';
+import 'package:libpdf/src/fonts/fonts.dart';
 import 'package:libpdf/src/images/images.dart';
 import 'package:meta/meta.dart';
 
@@ -26,6 +27,7 @@ final class TextRun extends InlineContent {
     this.link,
     this.anchor,
     this.decoration,
+    this.fallbackFonts = const [],
   }) : super._();
 
   /// The text.
@@ -53,8 +55,25 @@ final class TextRun extends InlineContent {
   /// A background and border drawn behind the text.
   final InlineDecoration? decoration;
 
+  /// The fonts that set the characters [style]'s font lacks: each
+  /// character goes to the first that has it.
+  final List<PdfFont> fallbackFonts;
+
   /// A run of [text] with this run's formatting.
   TextRun withText(String text) => TextRun(
+    text,
+    style,
+    color: color,
+    underline: underline,
+    strikethrough: strikethrough,
+    link: link,
+    anchor: anchor,
+    decoration: decoration,
+    fallbackFonts: fallbackFonts,
+  );
+
+  /// This run in [style].
+  TextRun withStyle(PdfTextStyle style) => TextRun(
     text,
     style,
     color: color,

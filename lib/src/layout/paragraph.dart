@@ -463,10 +463,11 @@ int _skipDiscardable(List<LineItem> items, int start) {
 List<LineItem> paragraphItems(Paragraph paragraph, {double? maxWidth}) {
   final contents = [
     for (final content in paragraph.content)
-      if (content case PageReference(:final placeholder))
-        content.resolve(placeholder)
-      else
-        content,
+      ...switch (content) {
+        PageReference(:final placeholder) => [content.resolve(placeholder)],
+        TextRun(fallbackFonts: [_, ...]) => _withFallbacks(content),
+        _ => [content],
+      },
   ];
   final text = StringBuffer();
   for (final content in contents) {
@@ -579,6 +580,44 @@ List<LineItem> paragraphItems(Paragraph paragraph, {double? maxWidth}) {
     ..add(const GlueItem.fill())
     ..add(PenaltyItem(0, PenaltyItem.forced, run: lastRun));
   return maxWidth == null ? items : _splitWide(items, maxWidth);
+}
+
+/// [run] split where its font lacks characters a fallback font has.
+List<TextRun> _withFallbacks(TextRun run) {
+  final primary = run.style.font;
+  PdfFont fontFor(int rune) {
+    if (primary.covers(rune) || rune <= 0x20) return primary;
+    for (final font in run.fallbackFonts) {
+      if (font.covers(rune)) return font;
+    }
+    return primary;
+  }
+
+  final runs = <TextRun>[];
+  final text = StringBuffer();
+  PdfFont? current;
+  void flush() {
+    if (text.isEmpty) return;
+    final piece = run.withText(text.toString());
+    runs.add(
+      identical(current, primary)
+          ? piece
+          : piece.withStyle(run.style.copyWith(font: current)),
+    );
+    text.clear();
+  }
+
+  for (final rune in run.text.runes) {
+    // Spaces and controls stay with the font around them.
+    final font = rune <= 0x20 && current != null ? current : fontFor(rune);
+    if (!identical(font, current)) {
+      flush();
+      current = font;
+    }
+    text.writeCharCode(rune);
+  }
+  flush();
+  return runs;
 }
 
 bool _isWord(String text) => text.runes.every(
