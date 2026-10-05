@@ -127,8 +127,10 @@ void main() {
       words['Start']!.$3,
       closeTo((10 + helvetica.measure('Start') / px) * px, 0.5),
     );
-    final middle = words['Middle']!;
-    expect((middle.$1 + middle.$3) / 2, closeTo(150 * px, 0.6));
+    // "Mid" and the red "dle": one word, or two where the color changes.
+    final left = (words['Middle'] ?? words['Mid']!).$1;
+    final right = (words['Middle'] ?? words['dle']!).$3;
+    expect((left + right) / 2, closeTo(150 * px, 0.6));
     expect(words['End']!.$3, closeTo(290 * px, 0.6));
     expect(words['Down']!.$2, greaterThan(words['Start']!.$2 + 30));
   });
