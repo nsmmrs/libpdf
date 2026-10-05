@@ -123,6 +123,38 @@ void main() {
     expect(word(words(pdf), 'b').x, closeTo(20 + 65 + 4, 0.5));
   });
 
+  test('cells placed by offset and decorated by a callback', () {
+    final pieces = <(PdfRect, bool, bool)>[];
+    final (pdf, _) = render([
+      TableBox(
+        [
+          row([
+            TableCell(
+              [
+                ParagraphBox(
+                  Paragraph([TextRun('low', body)]),
+                  orphans: 1,
+                  widows: 1,
+                ),
+              ],
+              padding: EdgeInsets.zero,
+              verticalOffset: (room, height) => room - height,
+              decoration: (page, rect, {required first, required last}) =>
+                  pieces.add((rect, first, last)),
+            ),
+            const TableCell([SpacerBox(100)], padding: EdgeInsets.zero),
+          ]),
+        ],
+        columns: const [ColumnWidth.fixed(100), ColumnWidth.fixed(100)],
+      ),
+    ]);
+    // At the bottom of the 100 points the row takes.
+    expect(word(words(pdf), 'low').top, closeTo(20 + 100 - 10, 2));
+    expect(pieces, hasLength(1));
+    expect(pieces.single.$1.height, 100);
+    expect((pieces.single.$2, pieces.single.$3), (true, true));
+  });
+
   test('auto columns share the width by their content', () {
     final (pdf, _) = render([
       TableBox(
@@ -233,6 +265,54 @@ void main() {
     expect(word(all, 'a3').page, 1);
     expect(word(all, 'span').page, 2);
     expect(word(all, 'b2').page, 2);
+  });
+
+  test('stripes start over in each region', () {
+    const blue = PdfColor.rgb(0, 0, 1);
+    final (pdf, _) = render([
+      TableBox(
+        [
+          row([cell('head')]),
+          for (var i = 0; i < 30; i++) row([cell('r$i')]),
+        ],
+        columns: const [ColumnWidth.fixed(100)],
+        headerRows: 1,
+        stripes: const [blue, null],
+      ),
+    ], height: 200);
+    final all = words(pdf);
+    // The first body row of each page is blue, the next one isn't.
+    for (final page in {for (final w in all) w.page}) {
+      final rows = all.where((w) => w.page == page && w.text != 'head');
+      final first = rows.first;
+      final second = rows.elementAt(1);
+      final out = '${pdf.path}-p$page';
+      Process.runSync('pdftoppm', [
+        '-r',
+        '72',
+        '-f',
+        '$page',
+        '-l',
+        '$page',
+        '-singlefile',
+        pdf.path,
+        out,
+      ]);
+      final bytes = File('$out.ppm').readAsBytesSync();
+      final header = latin1.decode(bytes.sublist(0, 20)).split(RegExp(r'\s+'));
+      final width = int.parse(header[1]);
+      final pixels = Uint8List.sublistView(
+        bytes,
+        bytes.length - width * int.parse(header[2]) * 3,
+      );
+      (int, int, int) at(double x, double yDown) {
+        final i = (yDown.round() * width + x.round()) * 3;
+        return (pixels[i], pixels[i + 1], pixels[i + 2]);
+      }
+
+      expect(at(21, first.top + 2), (0, 0, 255), reason: 'page $page');
+      expect(at(21, second.top + 2), (255, 255, 255), reason: 'page $page');
+    }
   });
 
   test('backgrounds, borders and vertical alignment', () {

@@ -819,8 +819,9 @@ final class SvgPath
 final class TableBox extends LayoutBox
   BoxAlign align
   List<ColumnWidth> columns
+  List<PdfColor?> stripes
   List<TableRow> rows
-  TableBox(List<TableRow> rows, {required List<ColumnWidth> columns, int headerRows = 0, double? width, bool shrinkToContent = false, BoxAlign align = BoxAlign.left, BoxStyle style = const BoxStyle()})
+  TableBox(List<TableRow> rows, {required List<ColumnWidth> columns, int headerRows = 0, double? width, bool shrinkToContent = false, BoxAlign align = BoxAlign.left, List<PdfColor?> stripes = const [], BoxStyle style = const BoxStyle()})
   bool shrinkToContent
   double? width
   int headerRows
@@ -829,10 +830,12 @@ final class TableCell
   EdgeInsets padding
   List<LayoutBox> content
   PdfColor? background
-  TableCell(List<LayoutBox> content, {int colSpan = 1, int rowSpan = 1, EdgeInsets padding = const EdgeInsets.all(4), PdfColor? background, Border border = Border.none, VerticalAlign verticalAlign = VerticalAlign.top})
+  TableCell(List<LayoutBox> content, {int colSpan = 1, int rowSpan = 1, EdgeInsets padding = const EdgeInsets.all(4), PdfColor? background, Border border = Border.none, VerticalAlign verticalAlign = VerticalAlign.top, double Function(double, double)? verticalOffset, void Function(PdfPage, PdfRect, {required bool first, required bool last})? decoration})
   VerticalAlign verticalAlign
+  double Function(double, double)? verticalOffset
   int colSpan
   int rowSpan
+  void Function(PdfPage, PdfRect, {required bool first, required bool last})? decoration
 final class TableRow
   List<TableCell> cells
   TableRow(List<TableCell> cells, {double minHeight = 0})

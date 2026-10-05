@@ -449,6 +449,8 @@ final class TableCell {
     this.background,
     this.border = Border.none,
     this.verticalAlign = VerticalAlign.top,
+    this.verticalOffset,
+    this.decoration,
   }) : _openTop = false;
 
   new _rest(TableCell cell, this.content, this.rowSpan)
@@ -457,6 +459,8 @@ final class TableCell {
       background = cell.background,
       border = cell.border,
       verticalAlign = cell.verticalAlign,
+      verticalOffset = cell.verticalOffset,
+      decoration = cell.decoration,
       _openTop = true;
 
   /// The content.
@@ -479,6 +483,16 @@ final class TableCell {
 
   /// Where the content sits.
   final VerticalAlign verticalAlign;
+
+  /// How far below the top of the room inside the padding the content
+  /// sits, given that room's height and the content's (in place of
+  /// [verticalAlign]).
+  final double Function(double room, double contentHeight)? verticalOffset;
+
+  /// Paints the cell's border (in place of [border]), over the content,
+  /// given the cell's rectangle and whether the piece is where the cell
+  /// starts and ends.
+  final BoxDecoration? decoration;
 
   /// Whether this is the rest of a cell split by a break.
   final bool _openTop;
@@ -564,6 +578,7 @@ final class TableBox extends LayoutBox {
     this.width,
     this.shrinkToContent = false,
     this.align = BoxAlign.left,
+    this.stripes = const [],
     BoxStyle style = const BoxStyle(),
   }) : _grid = null,
        _widths = null,
@@ -576,6 +591,7 @@ final class TableBox extends LayoutBox {
       width = table.width,
       shrinkToContent = table.shrinkToContent,
       align = table.align,
+      stripes = table.stripes,
       super._(table.style);
 
   /// The rows.
@@ -595,6 +611,10 @@ final class TableBox extends LayoutBox {
 
   /// Its alignment when narrower than the region.
   final BoxAlign align;
+
+  /// The backgrounds the body rows take in turn (cells without their own),
+  /// counting from the first body row in each region.
+  final List<PdfColor?> stripes;
 
   /// The rows left to place (with their cells' columns), when this is the
   /// rest of a split table.
@@ -1519,6 +1539,7 @@ final class _Pass {
       double y,
       double height, {
       required bool openBottom,
+      PdfColor? stripe,
     }) {
       final width = _cellWidth(col, cell, widths);
       final padding = cell.padding;
@@ -1538,20 +1559,33 @@ final class _Pass {
           fit.placed,
           fit.height,
           openBottom: openBottom || fit.rest != null,
+          stripe: stripe,
         ),
       );
       return fit.rest;
     }
 
-    void placeRows(List<_GridRow> rows, List<double> heights) {
+    // The body rows placed in this region, for the stripes.
+    var stripeIndex = 0;
+    PdfColor? nextStripe({required bool body}) {
+      if (!body || box.stripes.isEmpty) return null;
+      return box.stripes[stripeIndex++ % box.stripes.length];
+    }
+
+    void placeRows(
+      List<_GridRow> rows,
+      List<double> heights, {
+      bool body = true,
+    }) {
       var y = top + used;
       for (final (i, row) in rows.indexed) {
+        final stripe = nextStripe(body: body);
         for (final (col, cell) in row.cells) {
           final span = math.min(cell.rowSpan, rows.length - i);
           final height = heights
               .sublist(i, i + span)
               .fold<double>(0, (a, b) => a + b);
-          cellAt(col, cell, y, height, openBottom: false);
+          cellAt(col, cell, y, height, openBottom: false, stripe: stripe);
         }
         y += heights[i];
       }
@@ -1569,7 +1603,7 @@ final class _Pass {
     final headerHeights = _rowHeights(headers, widths);
     final headerHeight = headerHeights.fold<double>(0, (a, b) => a + b);
     if (headerHeight > space + 1e-6 && !atTop) return _Fit.moved(box);
-    placeRows(headers, headerHeights);
+    placeRows(headers, headerHeights, body: false);
 
     List<_GridRow>? rest;
     var placedBody = 0;
@@ -1604,18 +1638,26 @@ final class _Pass {
         final carried = <(int, TableCell)>[];
         var y = top + used;
         for (var r = 0; r < fitting; r++) {
+          final stripe = nextStripe(body: true);
           for (final (col, cell) in group[r].cells) {
             final span = math.min(cell.rowSpan, group.length - r);
             if (r + span <= fitting) {
               final height = heights
                   .sublist(r, r + span)
                   .fold<double>(0, (a, b) => a + b);
-              cellAt(col, cell, y, height, openBottom: false);
+              cellAt(col, cell, y, height, openBottom: false, stripe: stripe);
             } else {
               final height = heights
                   .sublist(r, fitting)
                   .fold<double>(0, (a, b) => a + b);
-              final left = cellAt(col, cell, y, height, openBottom: true);
+              final left = cellAt(
+                col,
+                cell,
+                y,
+                height,
+                openBottom: true,
+                stripe: stripe,
+              );
               carried.add((
                 col,
                 TableCell._rest(cell, [?left], r + span - fitting),
@@ -1638,9 +1680,17 @@ final class _Pass {
         // Not even one row fits: split the first row's cells.
         final row = group.first;
         final carried = <(int, TableCell)>[];
+        final stripe = nextStripe(body: true);
         for (final (col, cell) in row.cells) {
           final span = math.min(cell.rowSpan, group.length);
-          final left = cellAt(col, cell, top + used, room, openBottom: true);
+          final left = cellAt(
+            col,
+            cell,
+            top + used,
+            room,
+            openBottom: true,
+            stripe: stripe,
+          );
           carried.add((col, TableCell._rest(cell, [?left], span)));
         }
         used += room;
@@ -2170,9 +2220,13 @@ final class _PlacedCell {
     this.content,
     this.contentHeight, {
     required this.openBottom,
+    this.stripe,
   });
 
   final TableCell cell;
+
+  /// The background of the cell's row, for a cell without its own.
+  final PdfColor? stripe;
 
   /// The left edge, from the table's region's left.
   final double x;
@@ -2188,6 +2242,9 @@ final class _PlacedCell {
   double get _contentTop {
     final padding = cell.padding;
     final room = height - padding.vertical;
+    if (cell.verticalOffset case final offset?) {
+      return y + padding.top + offset(room, contentHeight);
+    }
     return y +
         padding.top +
         switch (cell.verticalAlign) {
@@ -2228,7 +2285,7 @@ final class _PlacedTable extends _Placed {
   void paint(_Painter painter, double x, double top) {
     final canvas = painter.canvas;
     for (final placed in cells) {
-      if (placed.cell.background case final background?) {
+      if (placed.cell.background ?? placed.stripe case final background?) {
         canvas
           ..save()
           ..setFillColor(background)
@@ -2252,6 +2309,20 @@ final class _PlacedTable extends _Placed {
       );
     }
     for (final placed in cells) {
+      if (placed.cell.decoration case final decoration?) {
+        decoration(
+          painter.page,
+          PdfRect(
+            x + placed.x,
+            top - placed.y - placed.height,
+            placed.width,
+            placed.height,
+          ),
+          first: !placed.cell._openTop,
+          last: !placed.openBottom,
+        );
+        continue;
+      }
       final border = placed.cell.border;
       final widths = border.widths;
       if (widths == EdgeInsets.zero) continue;
