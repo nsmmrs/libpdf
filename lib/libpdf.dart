@@ -46,17 +46,21 @@ export 'src/images/images.dart'
 export 'src/layout/flow.dart'
     show
         AnchorPosition,
+        AutoColumnWidth,
         BlockBox,
         Border,
         BoxAlign,
         BoxStyle,
         BreakBox,
         BreakKind,
+        ColumnWidth,
         ColumnsBox,
         DefaultPageBreaker,
         DrawingBox,
         EdgeInsets,
+        FixedColumnWidth,
         FlowLayout,
+        FractionColumnWidth,
         ImageBox,
         LayoutBox,
         LayoutResult,
@@ -64,9 +68,19 @@ export 'src/layout/flow.dart'
         PageInfo,
         PageTemplate,
         ParagraphBox,
-        SpacerBox;
+        SpacerBox,
+        TableBox,
+        TableCell,
+        TableRow,
+        VerticalAlign;
 export 'src/layout/inline.dart'
-    show InlineAlignment, InlineContent, InlineImage, PageReference, TextRun;
+    show
+        InlineAlignment,
+        InlineContent,
+        InlineDecoration,
+        InlineImage,
+        PageReference,
+        TextRun;
 export 'src/layout/line_break.dart'
     show LineBreak, LineBreakClass, lineBreakClass, lineBreaks;
 export 'src/layout/line_break_data.g.dart' show unicodeVersion;

@@ -704,6 +704,18 @@ final class Line {
         case TextFragment(:final run, :final glyphs, :final style):
           final font = style.font;
           final size = style.size;
+          if (run.decoration case final decoration?) {
+            _decorate(
+              canvas,
+              decoration,
+              PdfRect(
+                left - decoration.padding,
+                y + font.descender * size / 1000,
+                fragment.width + 2 * decoration.padding,
+                (font.ascender - font.descender) * size / 1000,
+              ),
+            );
+          }
           canvas.save();
           if (run.color case final color?) canvas.setFillColor(color);
           canvas.glyphs(glyphs, left, y, style);
@@ -758,6 +770,34 @@ final class Line {
       }
     }
   }
+}
+
+void _decorate(PdfCanvas canvas, InlineDecoration decoration, PdfRect rect) {
+  void shape(PdfRect r) => decoration.radius > 0
+      ? canvas.roundedRect(r, decoration.radius)
+      : canvas.rect(r);
+  canvas.save();
+  if (decoration.background case final background?) {
+    canvas.setFillColor(background);
+    shape(rect);
+    canvas.fill();
+  }
+  final w = decoration.borderWidth;
+  if (decoration.borderColor case final color? when w > 0) {
+    canvas
+      ..setStrokeColor(color)
+      ..setLineWidth(w);
+    shape(
+      PdfRect(
+        rect.left + w / 2,
+        rect.bottom + w / 2,
+        rect.width - w,
+        rect.height - w,
+      ),
+    );
+    canvas.stroke();
+  }
+  canvas.restore();
 }
 
 /// The lines of [paragraph] from its [items] broken at [breaks], in

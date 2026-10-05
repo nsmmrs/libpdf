@@ -53,3 +53,12 @@
   `PageBreaker` strategy; running headers and footers that see the page
   number, the page count and running marks; anchors that become named
   destinations; page references resolved by laying out again.
+- Layout, tables: fixed, fraction and auto column widths (auto columns
+  share space by their content's narrowest and widest widths, as CSS's
+  automatic table layout does), column and row spans, per-cell padding,
+  backgrounds, borders and vertical alignment, header rows repeated on
+  each page, row groups joined by spans kept together, and rows (and
+  spanning cells) split when taller than a page. Inline decorations
+  (background and border behind a run). A sample document with golden
+  renders, and a benchmark (`benchmark/layout_benchmark.dart`, about 240
+  pages a second on a laptop).

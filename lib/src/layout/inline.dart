@@ -25,6 +25,7 @@ final class TextRun extends InlineContent {
     this.strikethrough = false,
     this.link,
     this.anchor,
+    this.decoration,
   }) : super._();
 
   /// The text.
@@ -49,6 +50,9 @@ final class TextRun extends InlineContent {
   /// up (for destinations, a table of contents, an index).
   final String? anchor;
 
+  /// A background and border drawn behind the text.
+  final InlineDecoration? decoration;
+
   /// A run of [text] with this run's formatting.
   TextRun withText(String text) => TextRun(
     text,
@@ -58,7 +62,37 @@ final class TextRun extends InlineContent {
     strikethrough: strikethrough,
     link: link,
     anchor: anchor,
+    decoration: decoration,
   );
+}
+
+/// A box drawn behind a run of text: a background and a border around
+/// the text's ascent and descent, wider by [padding] on each side.
+@immutable
+final class InlineDecoration {
+  /// A decoration.
+  const new({
+    this.background,
+    this.borderColor,
+    this.borderWidth = 0,
+    this.radius = 0,
+    this.padding = 0,
+  });
+
+  /// The fill.
+  final PdfColor? background;
+
+  /// The border's color.
+  final PdfColor? borderColor;
+
+  /// The border's width.
+  final double borderWidth;
+
+  /// The corner radius.
+  final double radius;
+
+  /// The extra width on the left and right, in points.
+  final double padding;
 }
 
 /// How an inline image sits on the line.

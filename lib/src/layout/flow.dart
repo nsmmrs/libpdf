@@ -340,6 +340,180 @@ final class ColumnsBox extends LayoutBox {
   final bool _continued;
 }
 
+/// How a cell's content sits in a row taller than it.
+enum VerticalAlign {
+  /// At the top.
+  top,
+
+  /// In the middle.
+  middle,
+
+  /// At the bottom.
+  bottom,
+}
+
+/// A table cell: boxes, spanning columns and rows.
+@immutable
+final class TableCell {
+  /// A cell of [content].
+  const new(
+    this.content, {
+    this.colSpan = 1,
+    this.rowSpan = 1,
+    this.padding = const EdgeInsets.all(4),
+    this.background,
+    this.border = Border.none,
+    this.verticalAlign = VerticalAlign.top,
+  }) : _openTop = false;
+
+  new _rest(TableCell cell, this.content, this.rowSpan)
+    : colSpan = cell.colSpan,
+      padding = cell.padding,
+      background = cell.background,
+      border = cell.border,
+      verticalAlign = cell.verticalAlign,
+      _openTop = true;
+
+  /// The content.
+  final List<LayoutBox> content;
+
+  /// The columns the cell spans.
+  final int colSpan;
+
+  /// The rows the cell spans.
+  final int rowSpan;
+
+  /// The space between the cell's edges and its content.
+  final EdgeInsets padding;
+
+  /// The fill.
+  final PdfColor? background;
+
+  /// The border, centered on the cell's edges.
+  final Border border;
+
+  /// Where the content sits.
+  final VerticalAlign verticalAlign;
+
+  /// Whether this is the rest of a cell split by a break.
+  final bool _openTop;
+}
+
+/// A table row.
+@immutable
+final class TableRow {
+  /// A row of [cells] (left to right, skipping columns that cells from
+  /// rows above span), at least [minHeight] tall.
+  const new(this.cells, {this.minHeight = 0});
+
+  /// The cells.
+  final List<TableCell> cells;
+
+  /// The least height.
+  final double minHeight;
+}
+
+/// The width of a table column.
+@immutable
+sealed class ColumnWidth {
+  const new _();
+
+  /// [points] wide.
+  const factory fixed(double points) = FixedColumnWidth;
+
+  /// A share of the width the fixed and auto columns leave, by [weight].
+  const factory fraction(double weight) = FractionColumnWidth;
+
+  /// As wide as the content wants, within what is available.
+  const factory auto() = AutoColumnWidth;
+}
+
+/// A column of a fixed width.
+final class FixedColumnWidth extends ColumnWidth {
+  /// [points] wide.
+  const new(this.points) : super._();
+
+  /// The width.
+  final double points;
+}
+
+/// A column sharing what is left.
+final class FractionColumnWidth extends ColumnWidth {
+  /// A share by [weight].
+  const new(this.weight) : super._();
+
+  /// The weight.
+  final double weight;
+}
+
+/// A column as wide as its content.
+final class AutoColumnWidth extends ColumnWidth {
+  /// An auto column.
+  const new() : super._();
+}
+
+/// A table: rows of cells in columns. Header rows repeat at the top of
+/// each region the table continues in.
+final class TableBox extends LayoutBox {
+  /// A table of [rows] in [columns]; the first [headerRows] rows are the
+  /// header. The table is [width] wide (the region's width when null; as
+  /// narrow as its content allows with [shrinkToContent]).
+  const new(
+    this.rows, {
+    required this.columns,
+    this.headerRows = 0,
+    this.width,
+    this.shrinkToContent = false,
+    this.align = BoxAlign.left,
+    BoxStyle style = const BoxStyle(),
+  }) : _grid = null,
+       _widths = null,
+       super._(style);
+
+  new _rest(TableBox table, this._grid, this._widths)
+    : rows = table.rows,
+      columns = table.columns,
+      headerRows = table.headerRows,
+      width = table.width,
+      shrinkToContent = table.shrinkToContent,
+      align = table.align,
+      super._(table.style);
+
+  /// The rows.
+  final List<TableRow> rows;
+
+  /// The columns' widths.
+  final List<ColumnWidth> columns;
+
+  /// The number of header rows.
+  final int headerRows;
+
+  /// The table's width.
+  final double? width;
+
+  /// Whether the table is as narrow as its content allows.
+  final bool shrinkToContent;
+
+  /// Its alignment when narrower than the region.
+  final BoxAlign align;
+
+  /// The rows left to place (with their cells' columns), when this is the
+  /// rest of a split table.
+  final List<_GridRow>? _grid;
+
+  /// The columns' widths, fixed by the first piece.
+  final List<double>? _widths;
+}
+
+/// A row with each cell's column.
+final class _GridRow {
+  const new(this.cells, this.minHeight, {this.header = false});
+
+  final List<(int, TableCell)> cells;
+  final double minHeight;
+  final bool header;
+}
+
 /// Decides where content breaks across regions.
 abstract interface class PageBreaker {
   /// How many of the lines of [heights] go in [available] height (0 moves
@@ -595,31 +769,31 @@ final class _Pass {
   List<Line> _linesOf(ParagraphBox box, double width) {
     final source = box._source ?? box;
     return _lines[(source, width)] ??= () {
-      final paragraph = source.paragraph;
-      final content = [
+      return (source.lineBreaker ?? layout.lineBreaker).breakLines(
+        _resolve(source.paragraph),
+        (_) => width,
+      );
+    }();
+  }
+
+  /// [paragraph] with its page references filled in.
+  Paragraph _resolve(Paragraph paragraph) {
+    if (!paragraph.content.any((c) => c is PageReference)) return paragraph;
+    hasReferences = true;
+    return Paragraph(
+      [
         for (final c in paragraph.content)
           if (c case PageReference(:final anchor, :final placeholder))
             c.resolve(_pageOf(anchor) ?? placeholder)
           else
             c,
-      ];
-      if (content.length != paragraph.content.length ||
-          paragraph.content.any((c) => c is PageReference)) {
-        hasReferences = true;
-      }
-      final resolved = Paragraph(
-        content,
-        align: paragraph.align,
-        lineHeight: paragraph.lineHeight,
-        firstLineIndent: paragraph.firstLineIndent,
-        hyphenator: paragraph.hyphenator,
-        breakLongWords: paragraph.breakLongWords,
-      );
-      return (source.lineBreaker ?? layout.lineBreaker).breakLines(
-        resolved,
-        (_) => width,
-      );
-    }();
+      ],
+      align: paragraph.align,
+      lineHeight: paragraph.lineHeight,
+      firstLineIndent: paragraph.firstLineIndent,
+      hyphenator: paragraph.hyphenator,
+      breakLongWords: paragraph.breakLongWords,
+    );
   }
 
   /// The height of [box] laid out with no limit.
@@ -646,7 +820,7 @@ final class _Pass {
             style.border.widths.top +
             style.padding.top +
             (children.isEmpty ? 0 : _minHeight(children.first, inner));
-      case ImageBox() || DrawingBox():
+      case ImageBox() || DrawingBox() || TableBox():
         return _measure(box, width);
       case SpacerBox() || BreakBox():
         return 0;
@@ -673,6 +847,7 @@ final class _Pass {
             ),
     BreakBox() => _Fit(const _PlacedSpace(0), 0, null, hit: box),
     ColumnsBox() => _columns(box, width, available, atTop: atTop),
+    TableBox() => _table(box, width, available, atTop: atTop),
   };
 
   _Fit _block(
@@ -872,6 +1047,467 @@ final class _Pass {
       _PlacedDrawing(box.draw, x, top, w, box.height, height, box.style.anchor),
       height,
       null,
+    );
+  }
+
+  /// The narrowest and the widest [box] can usefully be laid out.
+  (double, double) _intrinsic(LayoutBox box) {
+    final margin = box.style.margin.horizontal;
+    switch (box) {
+      case ParagraphBox(:final paragraph):
+        var least = 0.0;
+        var most = 0.0;
+        var word = 0.0;
+        var line = 0.0;
+        for (final item in paragraphItems(_resolve(paragraph))) {
+          switch (item) {
+            case BoxItem(:final width):
+              word += width;
+              line += width;
+            case GlueItem(:final width):
+              least = math.max(least, word);
+              word = 0;
+              line += width;
+            case PenaltyItem(:final isForced):
+              least = math.max(least, word);
+              word = 0;
+              if (isForced) {
+                most = math.max(most, line);
+                line = 0;
+              }
+          }
+        }
+        final indent = paragraph.firstLineIndent;
+        return (
+          math.max(least, word) + margin + indent,
+          math.max(most, line) + margin + indent,
+        );
+      case BlockBox(:final children):
+        final insets =
+            margin +
+            box.style.border.widths.horizontal +
+            box.style.padding.horizontal;
+        var least = 0.0;
+        var most = 0.0;
+        for (final child in children) {
+          final (a, b) = _intrinsic(child);
+          least = math.max(least, a);
+          most = math.max(most, b);
+        }
+        return (least + insets, most + insets);
+      case ColumnsBox(:final children, :final count, :final gap):
+        var least = 0.0;
+        var most = 0.0;
+        for (final child in children) {
+          final (a, b) = _intrinsic(child);
+          least = math.max(least, a);
+          most = math.max(most, b);
+        }
+        final gaps = gap * (count - 1);
+        return (least * count + gaps + margin, most * count + gaps + margin);
+      case ImageBox(:final width):
+        return (width + margin, width + margin);
+      case DrawingBox(:final width):
+        return ((width ?? 0) + margin, (width ?? 0) + margin);
+      case SpacerBox() || BreakBox():
+        return (0, 0);
+      case TableBox():
+        final grid = box._grid ?? _gridOf(box);
+        final (mins, maxs) = _columnRanges(box, grid);
+        double sum(List<double> values) => values.fold(0, (a, b) => a + b);
+        return (sum(mins) + margin, sum(maxs) + margin);
+    }
+  }
+
+  /// The rows of [table] with each cell's column, as HTML places them:
+  /// each cell in the first column not taken by a cell spanning down from
+  /// above.
+  List<_GridRow> _gridOf(TableBox table) {
+    final n = table.columns.length;
+    final busy = List<int>.filled(n, 0);
+    final grid = <_GridRow>[];
+    for (final (i, row) in table.rows.indexed) {
+      final cells = <(int, TableCell)>[];
+      final placed = List<int>.filled(n, 0);
+      var col = 0;
+      for (final cell in row.cells) {
+        while (col < n && busy[col] > 0) {
+          col++;
+        }
+        if (col >= n) break;
+        final rowSpan = math.min(cell.rowSpan, table.rows.length - i);
+        cells.add((
+          col,
+          rowSpan == cell.rowSpan ? cell : _withRowSpan(cell, rowSpan),
+        ));
+        for (var k = col; k < math.min(n, col + cell.colSpan); k++) {
+          placed[k] = rowSpan;
+        }
+        col += cell.colSpan;
+      }
+      for (var k = 0; k < n; k++) {
+        busy[k] = placed[k] > 0 ? placed[k] - 1 : math.max(0, busy[k] - 1);
+      }
+      grid.add(_GridRow(cells, row.minHeight, header: i < table.headerRows));
+    }
+    return grid;
+  }
+
+  static TableCell _withRowSpan(TableCell cell, int rowSpan) => TableCell(
+    cell.content,
+    colSpan: cell.colSpan,
+    rowSpan: rowSpan,
+    padding: cell.padding,
+    background: cell.background,
+    border: cell.border,
+    verticalAlign: cell.verticalAlign,
+  );
+
+  /// Each column's narrowest and widest useful width.
+  (List<double>, List<double>) _columnRanges(
+    TableBox table,
+    List<_GridRow> grid,
+  ) {
+    final n = table.columns.length;
+    final mins = List<double>.filled(n, 0);
+    final maxs = List<double>.filled(n, 0);
+    final spanning = <(int, int, double, double)>[];
+    for (final row in grid) {
+      for (final (col, cell) in row.cells) {
+        final (a, b) = _intrinsic(BlockBox(cell.content));
+        final least = a + cell.padding.horizontal;
+        final most = b + cell.padding.horizontal;
+        final span = math.min(cell.colSpan, n - col);
+        if (span == 1) {
+          mins[col] = math.max(mins[col], least);
+          maxs[col] = math.max(maxs[col], most);
+        } else {
+          spanning.add((col, span, least, most));
+        }
+      }
+    }
+    for (final (col, span, least, most) in spanning) {
+      final columns = [for (var c = col; c < col + span; c++) c];
+      final haveMin = columns.fold<double>(0, (s, c) => s + mins[c]);
+      if (least > haveMin) {
+        for (final c in columns) {
+          mins[c] += (least - haveMin) / span;
+        }
+      }
+      final haveMax = columns.fold<double>(0, (s, c) => s + maxs[c]);
+      if (most > haveMax) {
+        for (final c in columns) {
+          maxs[c] += (most - haveMax) / span;
+        }
+      }
+    }
+    for (var c = 0; c < n; c++) {
+      maxs[c] = math.max(maxs[c], mins[c]);
+    }
+    return (mins, maxs);
+  }
+
+  /// The columns' widths in [available]: fixed columns as given, auto
+  /// columns from their content (as CSS's automatic table layout shares
+  /// space), fraction columns sharing what is left.
+  List<double> _columnWidths(
+    TableBox table,
+    List<_GridRow> grid,
+    double available,
+  ) {
+    final (mins, maxs) = _columnRanges(table, grid);
+    final n = table.columns.length;
+    final widths = List<double>.filled(n, 0);
+    final autos = <int>[];
+    final fractions = <int>[];
+    var fixed = 0.0;
+    for (final (c, column) in table.columns.indexed) {
+      switch (column) {
+        case FixedColumnWidth(:final points):
+          widths[c] = points;
+          fixed += points;
+        case FractionColumnWidth():
+          fractions.add(c);
+        case AutoColumnWidth():
+          autos.add(c);
+      }
+    }
+    double sum(List<int> columns, List<double> values) =>
+        columns.fold(0, (s, c) => s + values[c]);
+    var total = table.width ?? available;
+    if (table.shrinkToContent && fractions.isEmpty) {
+      total = math.min(total, fixed + sum(autos, maxs));
+    }
+    final rest = total - fixed;
+
+    void spread(List<int> columns, double room, {required bool grow}) {
+      final least = sum(columns, mins);
+      final most = sum(columns, maxs);
+      for (final c in columns) {
+        if (most <= room) {
+          widths[c] =
+              maxs[c] +
+              (grow
+                  ? (room - most) *
+                        (most > 0 ? maxs[c] / most : 1 / columns.length)
+                  : 0);
+        } else if (least <= room) {
+          widths[c] =
+              mins[c] +
+              (room - least) *
+                  (most > least ? (maxs[c] - mins[c]) / (most - least) : 0);
+        } else {
+          widths[c] = least > 0
+              ? mins[c] * room / least
+              : room / columns.length;
+        }
+      }
+    }
+
+    if (fractions.isEmpty) {
+      spread(autos, rest, grow: true);
+    } else {
+      final room = math.max<double>(0, rest - sum(fractions, mins));
+      spread(autos, math.min(room, sum(autos, maxs)), grow: false);
+      final left = math.max<double>(0, rest - sum(autos, widths));
+      final weights = fractions.fold<double>(
+        0,
+        (s, c) => s + (table.columns[c] as FractionColumnWidth).weight,
+      );
+      for (final c in fractions) {
+        final weight = (table.columns[c] as FractionColumnWidth).weight;
+        widths[c] = weights > 0 ? left * weight / weights : 0;
+      }
+    }
+    return widths;
+  }
+
+  double _cellWidth(int col, TableCell cell, List<double> widths) {
+    var width = 0.0;
+    for (var c = col; c < math.min(widths.length, col + cell.colSpan); c++) {
+      width += widths[c];
+    }
+    return width;
+  }
+
+  /// The heights of [rows] (cells spanning down add to the last row they
+  /// span).
+  List<double> _rowHeights(List<_GridRow> rows, List<double> widths) {
+    final heights = [for (final row in rows) row.minHeight];
+    final spans = <(int, int, double)>[];
+    for (final (i, row) in rows.indexed) {
+      for (final (col, cell) in row.cells) {
+        final width = _cellWidth(col, cell, widths) - cell.padding.horizontal;
+        final needs =
+            _measure(BlockBox(cell.content), width) + cell.padding.vertical;
+        final span = math.min(cell.rowSpan, rows.length - i);
+        if (span == 1) {
+          heights[i] = math.max(heights[i], needs);
+        } else {
+          spans.add((i, span, needs));
+        }
+      }
+    }
+    for (final (i, span, needs) in spans) {
+      final have = heights
+          .sublist(i, i + span)
+          .fold<double>(0, (a, b) => a + b);
+      if (needs > have) heights[i + span - 1] += needs - have;
+    }
+    return heights;
+  }
+
+  /// The last row of the group starting at [start]: rows joined by cells
+  /// spanning down.
+  int _groupEnd(List<_GridRow> rows, int start) {
+    var end = start;
+    for (var i = start; i <= end && i < rows.length; i++) {
+      for (final (_, cell) in rows[i].cells) {
+        end = math.max(end, math.min(rows.length - 1, i + cell.rowSpan - 1));
+      }
+    }
+    return end;
+  }
+
+  _Fit _table(
+    TableBox box,
+    double width,
+    double available, {
+    required bool atTop,
+  }) {
+    final style = box.style;
+    final continued = box._grid != null;
+    if (style.keepTogether && !atTop && !continued && available.isFinite) {
+      final whole = _measure(box, width);
+      if (layout.pageBreaker.moveKeptBox(whole, available, _regionHeight)) {
+        return _Fit.moved(box);
+      }
+    }
+    final margin = style.margin;
+    final top = atTop || continued ? 0.0 : margin.top;
+    final room = width - margin.horizontal;
+    final grid = box._grid ?? _gridOf(box);
+    final widths = box._widths ?? _columnWidths(box, grid, room);
+    final tableWidth = widths.fold<double>(0, (a, b) => a + b);
+    final left =
+        margin.left +
+        switch (box.align) {
+          BoxAlign.left => 0.0,
+          BoxAlign.center => (room - tableWidth) / 2,
+          BoxAlign.right => room - tableWidth,
+        };
+    final columnLeft = [
+      for (var c = 0, x = left; c < widths.length; x += widths[c], c++) x,
+    ];
+    final cells = <_PlacedCell>[];
+    final space = available - top;
+    var used = 0.0;
+
+    /// Places [cell] (at [col]) [height] tall at [y]; returns the rest of
+    /// its content if it didn't all fit.
+    LayoutBox? cellAt(
+      int col,
+      TableCell cell,
+      double y,
+      double height, {
+      required bool openBottom,
+    }) {
+      final width = _cellWidth(col, cell, widths);
+      final padding = cell.padding;
+      final fit = _place(
+        BlockBox(cell.content),
+        width - padding.horizontal,
+        height - padding.vertical,
+        atTop: true,
+      );
+      cells.add(
+        _PlacedCell(
+          cell,
+          columnLeft[col],
+          y,
+          width,
+          height,
+          fit.placed,
+          fit.height,
+          openBottom: openBottom || fit.rest != null,
+        ),
+      );
+      return fit.rest;
+    }
+
+    void placeRows(List<_GridRow> rows, List<double> heights) {
+      var y = top + used;
+      for (final (i, row) in rows.indexed) {
+        for (final (col, cell) in row.cells) {
+          final span = math.min(cell.rowSpan, rows.length - i);
+          final height = heights
+              .sublist(i, i + span)
+              .fold<double>(0, (a, b) => a + b);
+          cellAt(col, cell, y, height, openBottom: false);
+        }
+        y += heights[i];
+      }
+      used += heights.fold<double>(0, (a, b) => a + b);
+    }
+
+    final headers = [
+      for (final row in grid)
+        if (row.header) row,
+    ];
+    final body = [
+      for (final row in grid)
+        if (!row.header) row,
+    ];
+    final headerHeights = _rowHeights(headers, widths);
+    final headerHeight = headerHeights.fold<double>(0, (a, b) => a + b);
+    if (headerHeight > space + 1e-6 && !atTop) return _Fit.moved(box);
+    placeRows(headers, headerHeights);
+
+    List<_GridRow>? rest;
+    var placedBody = 0;
+    var i = 0;
+    while (i < body.length) {
+      final end = _groupEnd(body, i);
+      final group = body.sublist(i, end + 1);
+      final heights = _rowHeights(group, widths);
+      final groupHeight = heights.fold<double>(0, (a, b) => a + b);
+      if (used + groupHeight <= space + 1e-6) {
+        placeRows(group, heights);
+        placedBody += group.length;
+        i = end + 1;
+        continue;
+      }
+      if (placedBody > 0) {
+        rest = body.sublist(i);
+        break;
+      }
+      if (!atTop) return _Fit.moved(box);
+      // At the top of a region and still too tall: split the group.
+      final room = space - used;
+      var fitting = 0;
+      var fittingHeight = 0.0;
+      while (fitting < group.length &&
+          fittingHeight + heights[fitting] <= room + 1e-6) {
+        fittingHeight += heights[fitting];
+        fitting++;
+      }
+      final restRows = <_GridRow>[];
+      if (fitting > 0) {
+        final carried = <(int, TableCell)>[];
+        var y = top + used;
+        for (var r = 0; r < fitting; r++) {
+          for (final (col, cell) in group[r].cells) {
+            final span = math.min(cell.rowSpan, group.length - r);
+            if (r + span <= fitting) {
+              final height = heights
+                  .sublist(r, r + span)
+                  .fold<double>(0, (a, b) => a + b);
+              cellAt(col, cell, y, height, openBottom: false);
+            } else {
+              final height = heights
+                  .sublist(r, fitting)
+                  .fold<double>(0, (a, b) => a + b);
+              final left = cellAt(col, cell, y, height, openBottom: true);
+              carried.add((
+                col,
+                TableCell._rest(cell, [?left], r + span - fitting),
+              ));
+            }
+          }
+          y += heights[r];
+        }
+        used += fittingHeight;
+        final next = group[fitting];
+        restRows
+          ..add(
+            _GridRow(
+              [...next.cells, ...carried]..sort((a, b) => a.$1 - b.$1),
+              next.minHeight,
+            ),
+          )
+          ..addAll(group.sublist(fitting + 1));
+      } else {
+        // Not even one row fits: split the first row's cells.
+        final row = group.first;
+        final carried = <(int, TableCell)>[];
+        for (final (col, cell) in row.cells) {
+          final span = math.min(cell.rowSpan, group.length);
+          final left = cellAt(col, cell, top + used, room, openBottom: true);
+          carried.add((col, TableCell._rest(cell, [?left], span)));
+        }
+        used += room;
+        restRows
+          ..add(_GridRow(carried, 0))
+          ..addAll(group.sublist(1));
+      }
+      rest = [...restRows, ...body.sublist(end + 1)];
+      break;
+    }
+    final height = top + used + (rest == null ? margin.bottom : 0);
+    return _Fit(
+      _PlacedTable(cells, height, rest == null ? style.anchor : null),
+      height,
+      rest == null ? null : TableBox._rest(box, [...headers, ...rest], widths),
     );
   }
 
@@ -1302,6 +1938,132 @@ final class _PlacedColumns extends _Placed {
   }
 }
 
+final class _PlacedCell {
+  const new(
+    this.cell,
+    this.x,
+    this.y,
+    this.width,
+    this.height,
+    this.content,
+    this.contentHeight, {
+    required this.openBottom,
+  });
+
+  final TableCell cell;
+
+  /// The left edge, from the table's region's left.
+  final double x;
+
+  /// The top edge, below the table's top.
+  final double y;
+  final double width;
+  final double height;
+  final _Placed? content;
+  final double contentHeight;
+  final bool openBottom;
+
+  double get _contentTop {
+    final padding = cell.padding;
+    final room = height - padding.vertical;
+    return y +
+        padding.top +
+        switch (cell.verticalAlign) {
+          VerticalAlign.top => 0,
+          VerticalAlign.middle => (room - contentHeight) / 2,
+          VerticalAlign.bottom => room - contentHeight,
+        };
+  }
+}
+
+final class _PlacedTable extends _Placed {
+  const new(this.cells, this.height, this.anchor);
+
+  final List<_PlacedCell> cells;
+  @override
+  final double height;
+  final String? anchor;
+
+  @override
+  void visit(
+    double x,
+    double top,
+    void Function(String anchor, double x, double y) anchor,
+    void Function((String, String) mark) mark,
+  ) {
+    if (this.anchor case final name?) anchor(name, x, top);
+    for (final cell in cells) {
+      cell.content?.visit(
+        x + cell.x + cell.cell.padding.left,
+        top - cell._contentTop,
+        anchor,
+        mark,
+      );
+    }
+  }
+
+  @override
+  void paint(_Painter painter, double x, double top) {
+    final canvas = painter.canvas;
+    for (final placed in cells) {
+      if (placed.cell.background case final background?) {
+        canvas
+          ..save()
+          ..setFillColor(background)
+          ..rect(
+            PdfRect(
+              x + placed.x,
+              top - placed.y - placed.height,
+              placed.width,
+              placed.height,
+            ),
+          )
+          ..fill()
+          ..restore();
+      }
+    }
+    for (final placed in cells) {
+      placed.content?.paint(
+        painter,
+        x + placed.x + placed.cell.padding.left,
+        top - placed._contentTop,
+      );
+    }
+    for (final placed in cells) {
+      final border = placed.cell.border;
+      final widths = border.widths;
+      if (widths == EdgeInsets.zero) continue;
+      final l = x + placed.x;
+      final r = l + placed.width;
+      final t = top - placed.y;
+      final b = t - placed.height;
+      canvas
+        ..save()
+        ..setStrokeColor(border.color);
+      void side(double w, double x1, double y1, double x2, double y2) {
+        if (w <= 0) return;
+        canvas
+          ..setLineWidth(w)
+          ..moveTo(x1, y1)
+          ..lineTo(x2, y2)
+          ..stroke();
+      }
+
+      // Borders are centered on the cell's edges, and the horizontal ones
+      // reach over the vertical ones' halves at the corners.
+      if (!placed.cell._openTop) {
+        side(widths.top, l - widths.left / 2, t, r + widths.right / 2, t);
+      }
+      if (!placed.openBottom) {
+        side(widths.bottom, l - widths.left / 2, b, r + widths.right / 2, b);
+      }
+      side(widths.left, l, b, l, t);
+      side(widths.right, r, b, r, t);
+      canvas.restore();
+    }
+  }
+}
+
 /// Content laid out on pages, ready to render.
 final class LayoutResult {
   new _(this._layout, this._pages, this.anchors);
@@ -1377,7 +2139,8 @@ final class LayoutResult {
     final width = size.width - margins.horizontal;
     final height = header ? margins.top : margins.bottom;
     final pass = _Pass(_layout, anchors).._regionHeight = height;
-    final fit = pass._place(BlockBox(boxes), width, height, atTop: true);
+    // Space in running content is meant: nothing is dropped at its top.
+    final fit = pass._place(BlockBox(boxes), width, height, atTop: false);
     final top = header ? size.top : size.bottom + margins.bottom;
     fit.placed?.paint(painter, size.left + margins.left, top);
   }
