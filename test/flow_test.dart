@@ -134,6 +134,24 @@ void main() {
     });
   });
 
+  test('custom content lays itself out and splits across regions', () {
+    // Lines of 10 points; a piece starting fresh adds a gap of 3 above.
+    final result =
+        FlowLayout(
+          template: const PageTemplate(
+            PdfRect(0, 0, 100, 100),
+            margins: EdgeInsets.all(10),
+          ),
+        ).layout([
+          const CustomBox(_Lines(20, 0), style: BoxStyle(anchor: 'start')),
+        ]);
+    // 80 points a region: 7 lines after the gap, so 7 + 7 + 6.
+    expect(result.pageCount, 3);
+    expect(result.anchors['start']!.page, 0);
+    expect(result.anchors['line-19']!.page, 2);
+    expect(result.anchors['line-7']!.page, 1);
+  });
+
   group('rendered', skip: _tools ? false : 'needs poppler', () {
     test('a paragraph splits across pages, keeping its lines in order', () {
       final (pdf, result) = render([para(lines(10))], rowsTemplate(4));
@@ -371,4 +389,38 @@ _Raster _raster(File pdf, int page) {
     height,
     Uint8List.sublistView(bytes, bytes.length - width * height * 3),
   );
+}
+
+/// Custom content: [count] lines of 10 points from [from], with a gap of
+/// 3 points above each piece.
+final class _Lines implements CustomContent {
+  const new(this.count, this.from);
+
+  final int count;
+  final int from;
+
+  @override
+  CustomPlacement? place(
+    double width,
+    double available, {
+    required bool atTop,
+  }) {
+    final fit = ((available - 3) / 10).floor().clamp(0, count - from);
+    if (fit == 0 && !atTop) return null;
+    final n = fit == 0 ? 1 : fit;
+    return CustomPlacement(
+      height: 3 + n * 10,
+      paint: (page, x, top) {},
+      rest: from + n < count ? _Lines(count, from + n) : null,
+      anchors: [
+        for (var i = 0; i < n; i++) ('line-${from + i}', 0, 3 + i * 10),
+      ],
+    );
+  }
+
+  @override
+  double minHeight(double width) => 13;
+
+  @override
+  (double, double) intrinsicWidths() => (10, 10);
 }

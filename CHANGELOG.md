@@ -81,3 +81,6 @@
   CI (`tool/api_check.dart`); examples (a styled report with a table of
   contents, an SVG chart, a two-column booklet) run as tests;
   `FlowLayout.startTemplate` chooses the first page's template.
+- `CustomBox`: content that lays itself out (`CustomContent`), placed and
+  split by the layout like any box, for callers reproducing another
+  engine's text boxes.

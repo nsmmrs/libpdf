@@ -341,6 +341,70 @@ final class ColumnsBox extends LayoutBox {
   final bool _continued;
 }
 
+/// Content that lays itself out: the layout gives it the width and the
+/// height left, and it places as much as fits. Callers implement it to
+/// reproduce another engine's text boxes exactly, with the box tree
+/// still deciding pagination around them.
+abstract interface class CustomContent {
+  /// As much of the content as fits in [available] height at [width]
+  /// (`rest` holds what is left), or null to move all of it to the next
+  /// region. With [atTop] (nothing above it in the region), something
+  /// must be placed.
+  CustomPlacement? place(double width, double available, {required bool atTop});
+
+  /// The least height the content needs where it starts (to keep a box
+  /// with it).
+  double minHeight(double width);
+
+  /// The narrowest and widest the content can usefully be (for automatic
+  /// table columns).
+  (double, double) intrinsicWidths();
+}
+
+/// What placing custom content gave.
+final class CustomPlacement {
+  /// A piece [height] tall that [paint] draws with its top left at (x,
+  /// top), with [anchors] at offsets from that corner; [rest] is what
+  /// didn't fit.
+  const new({
+    required this.height,
+    required this.paint,
+    this.rest,
+    this.anchors = const [],
+  });
+
+  /// The height of the piece.
+  final double height;
+
+  /// Paints the piece on `page` (through its canvas) at (`x`, `top`).
+  final void Function(PdfPage page, double x, double top) paint;
+
+  /// What didn't fit, or null.
+  final CustomContent? rest;
+
+  /// Names and offsets (right and down from the top left) of positions in
+  /// the piece.
+  final List<(String, double, double)> anchors;
+}
+
+/// A box of content that lays itself out (see [CustomContent]); its
+/// style's margins apply.
+final class CustomBox extends LayoutBox {
+  /// A box of [content].
+  const new(this.content, {BoxStyle style = const BoxStyle()})
+    : _continued = false,
+      super._(style);
+
+  const new _rest(this.content, BoxStyle style)
+    : _continued = true,
+      super._(style);
+
+  /// The content.
+  final CustomContent content;
+
+  final bool _continued;
+}
+
 /// How a cell's content sits in a row taller than it.
 enum VerticalAlign {
   /// At the top.
@@ -827,6 +891,8 @@ final class _Pass {
             (children.isEmpty ? 0 : _minHeight(children.first, inner));
       case ImageBox() || DrawingBox() || TableBox():
         return _measure(box, width);
+      case CustomBox(:final content):
+        return margin.top + content.minHeight(width - margin.horizontal);
       case SpacerBox() || BreakBox():
         return 0;
     }
@@ -853,6 +919,7 @@ final class _Pass {
     BreakBox() => _Fit(const _PlacedSpace(0), 0, null, hit: box),
     ColumnsBox() => _columns(box, width, available, atTop: atTop),
     TableBox() => _table(box, width, available, atTop: atTop),
+    CustomBox() => _custom(box, width, available, atTop: atTop),
   };
 
   _Fit _block(
@@ -1116,6 +1183,9 @@ final class _Pass {
         return ((width ?? 0) + margin, (width ?? 0) + margin);
       case SpacerBox() || BreakBox():
         return (0, 0);
+      case CustomBox(:final content):
+        final (a, b) = content.intrinsicWidths();
+        return (a + margin, b + margin);
       case TableBox():
         final grid = box._grid ?? _gridOf(box);
         final (mins, maxs) = _columnRanges(box, grid);
@@ -1516,6 +1586,37 @@ final class _Pass {
     );
   }
 
+  _Fit _custom(
+    CustomBox box,
+    double width,
+    double available, {
+    required bool atTop,
+  }) {
+    final style = box.style;
+    final margin = style.margin;
+    final top = atTop || box._continued ? 0.0 : margin.top;
+    final placement = box.content.place(
+      width - margin.horizontal,
+      available - top,
+      atTop: atTop,
+    );
+    if (placement == null) return _Fit.moved(box);
+    final rest = placement.rest;
+    final height = top + placement.height + (rest == null ? margin.bottom : 0);
+    return _Fit(
+      _PlacedCustom(
+        placement,
+        margin.left,
+        top,
+        height,
+        box._continued ? null : style.anchor,
+        box._continued ? const {} : style.marks,
+      ),
+      height,
+      rest == null ? null : CustomBox._rest(rest, style),
+    );
+  }
+
   _Fit _columns(
     ColumnsBox box,
     double width,
@@ -1913,6 +2014,43 @@ final class _PlacedDrawing extends _Placed {
       ),
     );
   }
+}
+
+final class _PlacedCustom extends _Placed {
+  const new(
+    this.placement,
+    this.left,
+    this.top,
+    this.height,
+    this.anchor,
+    this.marks,
+  );
+
+  final CustomPlacement placement;
+  final double left;
+  final double top;
+  @override
+  final double height;
+  final String? anchor;
+  final Map<String, String> marks;
+
+  @override
+  void visit(
+    double x,
+    double top,
+    void Function(String anchor, double x, double y) anchor,
+    void Function((String, String) mark) mark,
+  ) {
+    if (this.anchor case final name?) anchor(name, x + left, top - this.top);
+    marks.entries.map((e) => (e.key, e.value)).forEach(mark);
+    for (final (name, dx, dy) in placement.anchors) {
+      anchor(name, x + left + dx, top - this.top - dy);
+    }
+  }
+
+  @override
+  void paint(_Painter painter, double x, double top) =>
+      placement.paint(painter.page, x + left, top - this.top);
 }
 
 final class _PlacedColumns extends _Placed {

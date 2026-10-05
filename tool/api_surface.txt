@@ -16,6 +16,11 @@ abstract base class ItemLineBreaker implements LineBreaker
   ItemLineBreaker()
   List<Line> breakLines(Paragraph paragraph, double Function(int) widths)
   List<int> breakItems(List<LineItem> items, double Function(int) widths)
+abstract interface class CustomContent
+  (double, double) intrinsicWidths()
+  CustomContent()
+  CustomPlacement? place(double width, double available, {required bool atTop})
+  double minHeight(double width)
 abstract interface class Graphic
   Graphic()
   double intrinsicHeight
@@ -240,6 +245,15 @@ final class CubicSegment extends PathSegment
   double y
   double y1
   double y2
+final class CustomBox extends LayoutBox
+  CustomBox(CustomContent content, {BoxStyle style = const BoxStyle()})
+  CustomContent content
+final class CustomPlacement
+  CustomContent? rest
+  CustomPlacement({required double height, required void Function(PdfPage, double, double) paint, CustomContent? rest, List<(String, double, double)> anchors = const []})
+  List<(String, double, double)> anchors
+  double height
+  void Function(PdfPage, double, double) paint
 final class DefaultPageBreaker implements PageBreaker
   DefaultPageBreaker()
   bool moveKeptBox(double height, double available, double regionHeight)
