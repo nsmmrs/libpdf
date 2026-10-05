@@ -100,3 +100,36 @@ final class InlineImage extends InlineContent {
   /// Where the image links to.
   final LinkTarget? link;
 }
+
+/// The page number (or label) of an anchor, filled in when the layout
+/// knows it: a table of contents, "see page 12". Until then it takes the
+/// room of [placeholder].
+final class PageReference extends InlineContent {
+  /// The page of [anchor], set in [style] like a [TextRun].
+  const new(
+    this.anchor,
+    this.style, {
+    this.placeholder = '000',
+    this.color,
+    this.link,
+  }) : super._();
+
+  /// The anchor whose page is shown.
+  final String anchor;
+
+  /// The font, size and text state.
+  final PdfTextStyle style;
+
+  /// The text measured before the page is known.
+  final String placeholder;
+
+  /// The fill color.
+  final PdfColor? color;
+
+  /// Where the reference links to.
+  final LinkTarget? link;
+
+  /// The reference as a run of [text].
+  TextRun resolve(String text) =>
+      TextRun(text, style, color: color, link: link);
+}

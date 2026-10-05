@@ -45,3 +45,11 @@
   anywhere, alignment (left, center, right, justified), first-line indent,
   line heights (font, multiple, exact), underline and strikethrough from
   the fonts' metrics, links and anchors reported where they are painted.
+- Layout, pages: a box tree (blocks with margins, padding, borders and
+  backgrounds; paragraphs; images; spacers; drawings; page and column
+  breaks; column sets) flowing into the regions of page templates (with
+  columns), split where needed (a split block's border stays open), with
+  keep-together, keep-with-next, orphans and widows decided by a
+  `PageBreaker` strategy; running headers and footers that see the page
+  number, the page count and running marks; anchors that become named
+  destinations; page references resolved by laying out again.

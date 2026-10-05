@@ -461,11 +461,20 @@ int _skipDiscardable(List<LineItem> items, int start) {
 /// flagged penalties. With [maxWidth], a box wider than it is split into
 /// characters with costly breaks between them.
 List<LineItem> paragraphItems(Paragraph paragraph, {double? maxWidth}) {
+  final contents = [
+    for (final content in paragraph.content)
+      if (content case PageReference(:final placeholder))
+        content.resolve(placeholder)
+      else
+        content,
+  ];
   final text = StringBuffer();
-  for (final content in paragraph.content) {
+  for (final content in contents) {
     text.write(switch (content) {
       TextRun(:final text) => text,
-      InlineImage() => '￼',
+      // U+FFFC OBJECT REPLACEMENT CHARACTER.
+      InlineImage() => '\u{fffc}',
+      PageReference(:final placeholder) => placeholder,
     });
   }
   final allowed = <int>{};
@@ -523,8 +532,10 @@ List<LineItem> paragraphItems(Paragraph paragraph, {double? maxWidth}) {
     softHyphen = false;
   }
 
-  for (final content in paragraph.content) {
+  for (final content in contents) {
     switch (content) {
+      case PageReference():
+        break; // resolved above
       case InlineImage(:final width):
         breakBefore(offset);
         flush();
@@ -840,6 +851,8 @@ Line _line(
       case InlineImage(:final width):
         shaped.add((content, text, const [], width));
         natural += width;
+      case PageReference():
+        throw StateError('page references are resolved before breaking');
     }
   }
   final extra = justify && spaces > 0 ? (available - natural) / spaces : 0.0;
@@ -900,6 +913,8 @@ Line _line(
         if (size == 0) size = height;
         fragments.add(ImageFragment(x, content.width, content, bottom));
         x += content.width;
+      case PageReference():
+        throw StateError('page references are resolved before breaking');
     }
   }
   final (height, baseline) = switch (paragraph.lineHeight) {
