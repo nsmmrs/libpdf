@@ -46,7 +46,7 @@ final class PdfPage {
   final int rotation;
 
   /// The page's content.
-  final PdfCanvas canvas = PdfCanvas();
+  final PdfCanvas canvas = newCanvas();
 
   final List<(PdfRect, LinkTarget)> _links = [];
 
@@ -408,7 +408,7 @@ final class PdfDocument {
     PdfWriterOptions options = const PdfWriterOptions(),
   }) {
     for (final (i, page) in _pages.indexed) {
-      if (page.canvas.unbalanced case final problem?) {
+      if (canvasUnbalanced(page.canvas) case final problem?) {
         throw StateError('page ${i + 1}: $problem');
       }
     }
@@ -420,11 +420,11 @@ final class PdfDocument {
   /// 1.5 (as do the object streams the writer raises the version for).
   String get _version {
     final seen = <PdfForm>{};
-    bool deep(PdfCanvas canvas) => canvas.resources.values.any(
+    bool deep(PdfCanvas canvas) => canvasResources(canvas).values.any(
       (entries) => entries.values.any(
         (resource) => switch (resource) {
           ImageResource(image: PngImage(bitDepth: 16)) => true,
-          FormResource(:final form) => seen.add(form) && deep(form.canvas),
+          FormResource(:final form) => seen.add(form) && deep(formCanvas(form)),
           _ => false,
         },
       ),
@@ -503,7 +503,7 @@ final class _Saver {
   }
 
   void _writePage(PdfPage page, PdfRef parent) {
-    final content = writer.write(PdfStream(page.canvas.content));
+    final content = writer.write(PdfStream(canvasContent(page.canvas)));
     final annotations = [
       for (final (rect, target) in page._links)
         writer.write(
@@ -529,7 +529,7 @@ final class _Saver {
         'Resources': _resources(page.canvas),
         'Contents': content,
         if (annotations.isNotEmpty) 'Annots': PdfArray(annotations),
-        if (page.canvas.usesTransparency) 'Group': _group(null),
+        if (canvasUsesTransparency(page.canvas)) 'Group': _group(null),
       }),
       _pageRefs[page],
     );
@@ -564,8 +564,9 @@ final class _Saver {
   ];
 
   PdfDict _resources(PdfCanvas canvas) => PdfDict({
-    for (final MapEntry(key: category, value: entries)
-        in canvas.resources.entries)
+    for (final MapEntry(key: category, value: entries) in canvasResources(
+      canvas,
+    ).entries)
       category: PdfDict({
         for (final MapEntry(key: name, value: resource) in entries.entries)
           name: _resource(resource),
@@ -583,7 +584,7 @@ final class _Saver {
       case FormResource(:final form):
         return _formRef(form);
       case ShadingResource(:final shading):
-        return _shadings[shading] ??= writer.write(shading.toDict());
+        return _shadings[shading] ??= writer.write(shadingDict(shading));
       case SeparationResource(:final name, :final alternate):
         return _separations[(name, alternate)] ??= PdfArray([
           const PdfName('Separation'),
@@ -628,13 +629,13 @@ final class _Saver {
   void _writeForm(PdfForm form) {
     writer.write(
       PdfStream(
-        form.canvas.content,
+        canvasContent(formCanvas(form)),
         dict: PdfDict({
           'Type': const PdfName('XObject'),
           'Subtype': const PdfName('Form'),
           'BBox': form.bbox.toArray(),
           'Matrix': ?form.matrix?.toArray(),
-          'Resources': _resources(form.canvas),
+          'Resources': _resources(formCanvas(form)),
           if (form.group case final group?) 'Group': _group(group),
         }),
       ),

@@ -33,9 +33,7 @@ sealed class PdfShading {
   /// Whether the last color continues after the end.
   final bool extendEnd;
 
-  /// The shading dictionary.
-  @internal
-  PdfDict toDict() {
+  PdfDict _toDict() {
     final first = stops.first.color;
     final space = switch (first) {
       GrayColor() => 'DeviceGray',
@@ -167,3 +165,7 @@ final class RadialShading extends PdfShading {
   @override
   List<double> get _coords => [fx, fy, fr, cx, cy, r];
 }
+
+/// The shading dictionary of [shading].
+@internal
+PdfDict shadingDict(PdfShading shading) => shading._toDict();

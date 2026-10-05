@@ -76,3 +76,8 @@
   Checked against librsvg's renderings. Shadings (`AxialShading`,
   `RadialShading`, `PdfCanvas.shade`) join the drawing API; `Graphic`
   lets the layout place raster and SVG images alike.
+- The package: only the supported API is exported (internals of the
+  canvas and shadings are no longer public), checked against a snapshot in
+  CI (`tool/api_check.dart`); examples (a styled report with a table of
+  contents, an SVG chart, a two-column booklet) run as tests;
+  `FlowLayout.startTemplate` chooses the first page's template.

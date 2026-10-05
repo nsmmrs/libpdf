@@ -676,6 +676,7 @@ final class FlowLayout {
     this.lineBreaker = const FirstFitLineBreaker(),
     String Function(int number)? pageLabel,
     this.maxPasses = 5,
+    this.startTemplate,
   }) : templates = {null: ?template, ...?templates},
        pageLabel = pageLabel ?? _decimal {
     if (this.templates[null] == null) {
@@ -697,6 +698,9 @@ final class FlowLayout {
 
   /// The most layouts tried to resolve page references.
   final int maxPasses;
+
+  /// The name of the first page's template (the default when null).
+  final String? startTemplate;
 
   static String _decimal(int number) => '$number';
 
@@ -733,7 +737,7 @@ final class _Pass {
 
   void run(List<LayoutBox> content) {
     LayoutBox? rest = BlockBox(content);
-    String? template;
+    var template = layout.startTemplate;
     var guard = 0;
     while (rest != null) {
       final page = _Page(layout.templates[template] ?? layout.templates[null]!);

@@ -1,0 +1,917 @@
+LineBreakClass lineBreakClass(int codePoint)
+List<Line> buildLines(Paragraph paragraph, List<LineItem> items, List<int> breaks, double Function(int) widths)
+List<LineBreak> lineBreaks(String text)
+List<LineItem> paragraphItems(Paragraph paragraph, {double? maxWidth})
+List<int>? pdfDocEncode(String text)
+String formatNumber(num value, {int precision = 5})
+String get libpdfVersion
+String get unicodeVersion
+String pdfDate(DateTime date)
+Uint8List deflate(List<int> data, {int level = 6})
+Uint8List inflate(List<int> data)
+Uint8List md5(List<int> data)
+Uint8List zlibDecode(List<int> data)
+Uint8List zlibEncode(List<int> data, {int level = 6})
+abstract base class ItemLineBreaker implements LineBreaker
+  ItemLineBreaker()
+  List<Line> breakLines(Paragraph paragraph, double Function(int) widths)
+  List<int> breakItems(List<LineItem> items, double Function(int) widths)
+abstract interface class Graphic
+  Graphic()
+  double intrinsicHeight
+  double intrinsicWidth
+  void paint(PdfCanvas canvas, PdfRect rect)
+abstract interface class Hyphenator
+  Hyphenator()
+  List<int> hyphenate(String word)
+abstract interface class LineBreaker
+  LineBreaker()
+  List<Line> breakLines(Paragraph paragraph, double Function(int) widths)
+abstract interface class PageBreaker
+  PageBreaker()
+  bool moveKeptBox(double height, double available, double regionHeight)
+  int linesThatFit(List<double> heights, double available, {required int orphans, required int widows, required bool atTop})
+enum BlendMode
+  String pdfName
+  static BlendMode colorBurn
+  static BlendMode colorDodge
+  static BlendMode darken
+  static BlendMode difference
+  static BlendMode exclusion
+  static BlendMode hardLight
+  static BlendMode lighten
+  static BlendMode multiply
+  static BlendMode normal
+  static BlendMode overlay
+  static BlendMode screen
+  static BlendMode softLight
+  static List<BlendMode> values
+enum BoxAlign
+  static BoxAlign center
+  static BoxAlign left
+  static BoxAlign right
+  static List<BoxAlign> values
+enum BreakKind
+  static BreakKind column
+  static BreakKind page
+  static List<BreakKind> values
+enum InlineAlignment
+  static InlineAlignment baseline
+  static InlineAlignment middle
+  static InlineAlignment top
+  static List<InlineAlignment> values
+enum LineBreakClass
+  static LineBreakClass ai
+  static LineBreakClass ak
+  static LineBreakClass al
+  static LineBreakClass ap
+  static LineBreakClass as_
+  static LineBreakClass b2
+  static LineBreakClass ba
+  static LineBreakClass bb
+  static LineBreakClass bk
+  static LineBreakClass cb
+  static LineBreakClass cj
+  static LineBreakClass cl
+  static LineBreakClass cm
+  static LineBreakClass cp
+  static LineBreakClass cr
+  static LineBreakClass eb
+  static LineBreakClass em
+  static LineBreakClass ex
+  static LineBreakClass gl
+  static LineBreakClass h2
+  static LineBreakClass h3
+  static LineBreakClass hh
+  static LineBreakClass hl
+  static LineBreakClass hy
+  static LineBreakClass id
+  static LineBreakClass in_
+  static LineBreakClass is_
+  static LineBreakClass jl
+  static LineBreakClass jt
+  static LineBreakClass jv
+  static LineBreakClass lf
+  static LineBreakClass nl
+  static LineBreakClass ns
+  static LineBreakClass nu
+  static LineBreakClass op
+  static LineBreakClass po
+  static LineBreakClass pr
+  static LineBreakClass qu
+  static LineBreakClass ri
+  static LineBreakClass sa
+  static LineBreakClass sg
+  static LineBreakClass sp
+  static LineBreakClass sy
+  static LineBreakClass vf
+  static LineBreakClass vi
+  static LineBreakClass wj
+  static LineBreakClass xx
+  static LineBreakClass zw
+  static LineBreakClass zwj
+  static List<LineBreakClass> values
+enum LineCap
+  static LineCap butt
+  static LineCap projectingSquare
+  static LineCap round
+  static List<LineCap> values
+enum LineJoin
+  static LineJoin bevel
+  static LineJoin miter
+  static LineJoin round
+  static List<LineJoin> values
+enum PageMode
+  String pdfName
+  static List<PageMode> values
+  static PageMode fullScreen
+  static PageMode useNone
+  static PageMode useOutlines
+  static PageMode useThumbs
+enum PageNumberStyle
+  String? pdfName
+  static List<PageNumberStyle> values
+  static PageNumberStyle decimal
+  static PageNumberStyle lowerLetters
+  static PageNumberStyle lowerRoman
+  static PageNumberStyle none
+  static PageNumberStyle upperLetters
+  static PageNumberStyle upperRoman
+enum PngColorType
+  List<int> bitDepths
+  bool hasAlpha
+  int channels
+  int code
+  static List<PngColorType> values
+  static PngColorType gray
+  static PngColorType grayAlpha
+  static PngColorType palette
+  static PngColorType rgb
+  static PngColorType rgba
+enum SoftMaskKind
+  String pdfName
+  static List<SoftMaskKind> values
+  static SoftMaskKind alpha
+  static SoftMaskKind luminosity
+enum TextAlign
+  static List<TextAlign> values
+  static TextAlign center
+  static TextAlign justify
+  static TextAlign left
+  static TextAlign right
+enum TextRenderMode
+  static List<TextRenderMode> values
+  static TextRenderMode clip
+  static TextRenderMode fill
+  static TextRenderMode fillClip
+  static TextRenderMode fillStroke
+  static TextRenderMode fillStrokeClip
+  static TextRenderMode invisible
+  static TextRenderMode stroke
+  static TextRenderMode strokeClip
+enum VerticalAlign
+  static List<VerticalAlign> values
+  static VerticalAlign bottom
+  static VerticalAlign middle
+  static VerticalAlign top
+final class AnchorPosition
+  AnchorPosition(int page, double x, double y)
+  double x
+  double y
+  int page
+final class AutoColumnWidth extends ColumnWidth
+  AutoColumnWidth()
+final class AxialShading extends PdfShading
+  AxialShading(double x0, double y0, double x1, double y1, List<GradientStop> stops, {bool extendStart = true, bool extendEnd = true})
+  double x0
+  double x1
+  double y0
+  double y1
+final class BlockBox extends LayoutBox
+  BlockBox(List<LayoutBox> children, {BoxStyle style = const BoxStyle()})
+  List<LayoutBox> children
+final class Border
+  Border({EdgeInsets widths = EdgeInsets.zero, PdfColor color = const GrayColor(0), double radius = 0})
+  EdgeInsets widths
+  PdfColor color
+  double radius
+  static Border none
+final class BoxItem extends LineItem
+  BoxItem(InlineContent content, String text, double width)
+  InlineContent content
+  String text
+  double width
+final class BoxStyle
+  Border border
+  BoxStyle({EdgeInsets margin = EdgeInsets.zero, EdgeInsets padding = EdgeInsets.zero, Border border = Border.none, PdfColor? background, bool keepTogether = false, bool keepWithNext = false, String? anchor, Map<String, String> marks = const {}})
+  EdgeInsets margin
+  EdgeInsets padding
+  Map<String, String> marks
+  PdfColor? background
+  String? anchor
+  bool keepTogether
+  bool keepWithNext
+final class BreakBox extends LayoutBox
+  BreakBox.column()
+  BreakBox.page({String? template})
+  BreakKind kind
+  String? template
+final class CloseSegment extends PathSegment
+  CloseSegment()
+final class CmykColor extends PdfColor
+  CmykColor(double cyan, double magenta, double yellow, double black)
+  List<double> components
+  bool ==(Object other)
+  double black
+  double cyan
+  double magenta
+  double yellow
+  int hashCode
+final class ColumnsBox extends LayoutBox
+  ColumnsBox(List<LayoutBox> children, {int count = 2, double gap = 12, BoxStyle style = const BoxStyle()})
+  List<LayoutBox> children
+  double gap
+  int count
+final class CubicSegment extends PathSegment
+  CubicSegment(double x1, double y1, double x2, double y2, double x, double y)
+  double x
+  double x1
+  double x2
+  double y
+  double y1
+  double y2
+final class DefaultPageBreaker implements PageBreaker
+  DefaultPageBreaker()
+  bool moveKeptBox(double height, double available, double regionHeight)
+  int linesThatFit(List<double> heights, double available, {required int orphans, required int widows, required bool atTop})
+final class DestinationTarget extends LinkTarget
+  DestinationTarget(PdfDestination destination)
+  PdfDestination destination
+final class DrawingBox extends LayoutBox
+  BoxAlign align
+  DrawingBox(double height, void Function(PdfCanvas, PdfRect) draw, {double? width, BoxStyle style = const BoxStyle(), BoxAlign align = BoxAlign.left})
+  double height
+  double? width
+  void Function(PdfCanvas, PdfRect) draw
+final class EdgeInsets
+  EdgeInsets({double top = 0, double right = 0, double bottom = 0, double left = 0})
+  EdgeInsets.all(double value)
+  EdgeInsets.symmetric({double vertical = 0, double horizontal = 0})
+  bool ==(Object other)
+  double bottom
+  double horizontal
+  double left
+  double right
+  double top
+  double vertical
+  int hashCode
+  static EdgeInsets zero
+final class EmbeddedFont extends PdfFont
+  EmbeddedFont.parse(List<int> bytes, {int index = 0, bool subset = true})
+  List<ShapedGlyph> shape(String text, {bool kerning = true, bool ligatures = false})
+  List<int> encode(List<ShapedGlyph> glyphs)
+  OpenTypeFont font
+  String name
+  bool covers(int codePoint)
+  bool missedGlyphs
+  bool subset
+  double ascender
+  double capHeight
+  double descender
+  double lineGap
+  double underlinePosition
+  double underlineThickness
+  double xHeight
+  void writeTo(PdfWriter writer)
+final class ExactLineHeight extends LineHeight
+  ExactLineHeight(double points)
+  double points
+final class FirstFitLineBreaker extends ItemLineBreaker
+  FirstFitLineBreaker()
+  List<int> breakItems(List<LineItem> items, double Function(int) widths)
+final class FitDestination extends PdfDestination
+  FitDestination(PdfPage page)
+final class FitWidthDestination extends PdfDestination
+  FitWidthDestination(PdfPage page, {double? top})
+  double? top
+final class FixedColumnWidth extends ColumnWidth
+  FixedColumnWidth(double points)
+  double points
+final class FlowLayout
+  FlowLayout({PageTemplate? template, Map<String?, PageTemplate>? templates, PageBreaker pageBreaker = const DefaultPageBreaker(), LineBreaker lineBreaker = const FirstFitLineBreaker(), String Function(int)? pageLabel, int maxPasses = 5, String? startTemplate})
+  LayoutResult layout(List<LayoutBox> content)
+  LineBreaker lineBreaker
+  Map<String?, PageTemplate> templates
+  PageBreaker pageBreaker
+  String Function(int) pageLabel
+  String? startTemplate
+  int maxPasses
+final class FontFormatException implements Exception
+  FontFormatException(String message)
+  String message
+  String toString()
+final class FontLineHeight extends LineHeight
+  FontLineHeight({double leading = 0})
+  double leading
+final class FractionColumnWidth extends ColumnWidth
+  FractionColumnWidth(double weight)
+  double weight
+final class GlueItem extends LineItem
+  GlueItem(TextRun? run, String text, double width, double stretch, double shrink)
+  GlueItem.fill()
+  String text
+  TextRun? run
+  double shrink
+  double stretch
+  double width
+final class GradientStop
+  GradientStop(double offset, PdfColor color)
+  PdfColor color
+  double offset
+final class GrayColor extends PdfColor
+  GrayColor(double level)
+  List<double> components
+  bool ==(Object other)
+  double level
+  int hashCode
+final class ImageBox extends LayoutBox
+  BoxAlign align
+  Graphic image
+  ImageBox(Graphic image, double width, double height, {BoxStyle style = const BoxStyle(), BoxAlign align = BoxAlign.left, bool shrinkToFit = true})
+  bool shrinkToFit
+  double height
+  double width
+final class ImageFormatException implements Exception
+  ImageFormatException(String message)
+  String message
+  String toString()
+final class ImageFragment extends LineFragment
+  ImageFragment(double x, double width, InlineImage image, double bottom)
+  InlineImage image
+  double bottom
+final class InlineDecoration
+  InlineDecoration({PdfColor? background, PdfColor? borderColor, double borderWidth = 0, double radius = 0, double padding = 0})
+  PdfColor? background
+  PdfColor? borderColor
+  double borderWidth
+  double padding
+  double radius
+final class InlineImage extends InlineContent
+  Graphic image
+  InlineAlignment alignment
+  InlineImage(Graphic image, double width, double height, {InlineAlignment alignment = InlineAlignment.baseline, LinkTarget? link})
+  LinkTarget? link
+  double height
+  double width
+final class JpegImage extends PdfImage
+  JpegImage.parse(Uint8List bytes)
+  Uint8List bytes
+  bool adobe
+  bool progressive
+  int bitsPerComponent
+  int components
+  int height
+  int orientation
+  int width
+  void writeTo(PdfWriter writer)
+final class KnuthPlassLineBreaker extends ItemLineBreaker
+  KnuthPlassLineBreaker({double tolerance = 2, double linePenalty = 10, double flaggedDemerits = 100, double fitnessDemerits = 100})
+  List<int> breakItems(List<LineItem> items, double Function(int) widths)
+  double fitnessDemerits
+  double flaggedDemerits
+  double linePenalty
+  double tolerance
+final class LayoutResult
+  List<PdfPage> render(PdfDocument document)
+  Map<String, AnchorPosition> anchors
+  int pageCount
+  int? pageOf(String anchor)
+final class Line
+  Line(List<LineFragment> fragments, {required double width, required double height, required double baseline, required double ascent, required double descent, required bool hyphenated})
+  List<LineFragment> fragments
+  bool hyphenated
+  double ascent
+  double baseline
+  double descent
+  double height
+  double width
+  void paint(PdfCanvas canvas, double x, double top, {void Function(PdfRect, LinkTarget)? link, void Function(String, double, double)? anchor})
+final class LineBreak
+  LineBreak(int offset, {required bool mandatory})
+  String toString()
+  bool ==(Object other)
+  bool mandatory
+  int hashCode
+  int offset
+final class LineSegment extends PathSegment
+  LineSegment(double x, double y)
+  double x
+  double y
+final class MoveSegment extends PathSegment
+  MoveSegment(double x, double y)
+  double x
+  double y
+final class MultipleLineHeight extends LineHeight
+  MultipleLineHeight(double factor)
+  double factor
+final class NamedTarget extends LinkTarget
+  NamedTarget(String name)
+  String name
+final class OpenTypeFont
+  Iterable<String> tableTags
+  List<int> bbox (settable)
+  List<int> components(int glyph)
+  Map<int, List<(List<int>, int)>> ligatures
+  Map<int, int> characterMap
+  OpenTypeFont.parse(List<int> bytes, {int index = 0})
+  String postScriptName (settable)
+  String? familyName (settable)
+  Uint8List bytes
+  Uint8List glyphData(int glyph)
+  Uint8List? table(String tag)
+  bool embeddingRestricted
+  bool hasTable(String tag)
+  bool isFixedPitch (settable)
+  bool isTrueType
+  double italicAngle (settable)
+  int advance(int glyph)
+  int ascender (settable)
+  int descender (settable)
+  int fontCount(List<int> bytes)
+  int fsType (settable)
+  int glyphFor(int codePoint)
+  int indexToLocFormat (settable)
+  int kerning(int left, int right)
+  int lineGap (settable)
+  int numGlyphs (settable)
+  int unitsPerEm (settable)
+  int weightClass (settable)
+  int? capHeight (settable)
+  int? underlinePosition (settable)
+  int? underlineThickness (settable)
+  int? xHeight (settable)
+final class PageInfo
+  String label
+  String? mark(String name)
+  int count
+  int number
+final class PageLabel
+  PageLabel({PageNumberStyle style = PageNumberStyle.decimal, String? prefix, int start = 1})
+  PageNumberStyle style
+  String? prefix
+  int start
+final class PageReference extends InlineContent
+  LinkTarget? link
+  PageReference(String anchor, PdfTextStyle style, {String placeholder = '000', PdfColor? color, LinkTarget? link})
+  PdfColor? color
+  PdfTextStyle style
+  String anchor
+  String placeholder
+  TextRun resolve(String text)
+final class PageTemplate
+  EdgeInsets margins
+  List<LayoutBox> Function(PageInfo)? footer
+  List<LayoutBox> Function(PageInfo)? header
+  List<PdfRect> regions
+  PageTemplate(PdfRect size, {EdgeInsets margins = const EdgeInsets.all(72), int columns = 1, double columnGap = 12, List<LayoutBox> Function(PageInfo)? header, List<LayoutBox> Function(PageInfo)? footer, void Function(PdfCanvas, PageInfo)? background})
+  PdfRect size
+  double columnGap
+  int columns
+  void Function(PdfCanvas, PageInfo)? background
+final class Paragraph
+  Hyphenator? hyphenator
+  LineHeight lineHeight
+  List<InlineContent> content
+  Paragraph(List<InlineContent> content, {TextAlign align = TextAlign.left, LineHeight lineHeight = const LineHeight.font(), double firstLineIndent = 0, Hyphenator? hyphenator, bool breakLongWords = true})
+  TextAlign align
+  bool breakLongWords
+  double firstLineIndent
+final class ParagraphBox extends LayoutBox
+  LineBreaker? lineBreaker
+  Paragraph paragraph
+  ParagraphBox(Paragraph paragraph, {BoxStyle style = const BoxStyle(), int orphans = 2, int widows = 2, LineBreaker? lineBreaker})
+  int orphans
+  int widows
+final class PdfArray extends PdfObject
+  List<PdfObject> items
+  PdfArray([List<PdfObject>? items])
+  PdfArray.numbers(Iterable<num> values)
+  void writeTo(BytesBuilder out)
+final class PdfBool extends PdfObject
+  PdfBool(bool value)
+  bool ==(Object other)
+  bool value
+  int hashCode
+  void writeTo(BytesBuilder out)
+final class PdfCanvas
+  double glyphs(List<ShapedGlyph> glyphs, double x, double y, PdfTextStyle style)
+  double text(String text, double x, double y, PdfTextStyle style)
+  void circle(double cx, double cy, double radius)
+  void clearSoftMask()
+  void clip({bool evenOdd = false})
+  void closePath()
+  void curveTo(double x1, double y1, double x2, double y2, double x3, double y3)
+  void dash(List<double> pattern, [double phase = 0])
+  void ellipse(double cx, double cy, double rx, double ry)
+  void endPath()
+  void fill({bool evenOdd = false})
+  void fillAndStroke({bool evenOdd = false})
+  void form(PdfForm form)
+  void image(PdfImage image, PdfRect rect)
+  void lineTo(double x, double y)
+  void moveTo(double x, double y)
+  void opacity({double? fill, double? stroke})
+  void rect(PdfRect rect)
+  void restore()
+  void rotate(double degrees)
+  void roundedRect(PdfRect rect, double radius)
+  void save()
+  void saved(void Function() draw)
+  void scale(double x, [double? y])
+  void setBlendMode(BlendMode mode)
+  void setFillColor(PdfColor color)
+  void setLineCap(LineCap cap)
+  void setLineJoin(LineJoin join)
+  void setLineWidth(double width)
+  void setMiterLimit(double limit)
+  void setStrokeColor(PdfColor color)
+  void shade(PdfShading shading)
+  void softMask(PdfForm mask, {SoftMaskKind kind = SoftMaskKind.luminosity})
+  void stroke()
+  void transform(PdfMatrix matrix)
+  void translate(double x, double y)
+final class PdfDict extends PdfObject
+  Map<String, PdfObject> entries
+  PdfDict([Map<String, PdfObject>? entries])
+  PdfObject? [](String key)
+  void []=(String key, PdfObject value)
+  void writeTo(BytesBuilder out)
+final class PdfDocument
+  List<PdfOutlineItem> outline
+  List<PdfPage> pages
+  PageMode? pageMode
+  PdfDocument({PdfInfo info = const PdfInfo(), String? language, PageMode? pageMode, bool displayTitle = false})
+  PdfInfo info
+  PdfOutlineItem addOutline(String title, LinkTarget? target, {bool open = false, bool bold = false, bool italic = false, RgbColor? color})
+  PdfPage addPage(PdfRect mediaBox, {PdfRect? cropBox, PdfRect? bleedBox, PdfRect? trimBox, PdfRect? artBox, int rotation = 0})
+  String? language
+  Uint8List save({PdfWriterOptions options = const PdfWriterOptions()})
+  bool displayTitle
+  void addDestination(String name, PdfDestination destination)
+  void labelPages(int pageIndex, PageLabel label)
+  void saveTo(void Function(List<int>) sink, {PdfWriterOptions options = const PdfWriterOptions()})
+final class PdfForm
+  PdfForm(PdfRect bbox, void Function(PdfCanvas) draw, {TransparencyGroup? group, PdfMatrix? matrix})
+  PdfMatrix? matrix
+  PdfRect bbox
+  TransparencyGroup? group
+final class PdfInfo
+  PdfInfo({String? title, String? author, String? subject, String? keywords, String? creator, String? producer})
+  String? author
+  String? creator
+  String? keywords
+  String? producer
+  String? subject
+  String? title
+final class PdfInt extends PdfObject
+  PdfInt(int value)
+  bool ==(Object other)
+  int hashCode
+  int value
+  void writeTo(BytesBuilder out)
+final class PdfMatrix
+  (double, double) apply(double x, double y)
+  PdfArray toArray()
+  PdfMatrix then(PdfMatrix other)
+  PdfMatrix(double a, double b, double c, double d, double e, double f)
+  PdfMatrix.identity()
+  PdfMatrix.rotation(double radians)
+  PdfMatrix.scaling(double x, double y)
+  PdfMatrix.translation(double x, double y)
+  String toString()
+  bool ==(Object other)
+  double a
+  double b
+  double c
+  double d
+  double e
+  double f
+  int hashCode
+final class PdfName extends PdfObject
+  PdfName(String value)
+  String value
+  bool ==(Object other)
+  int hashCode
+  void writeTo(BytesBuilder out)
+final class PdfNull extends PdfObject
+  PdfNull()
+  void writeTo(BytesBuilder out)
+final class PdfOutlineItem
+  LinkTarget? target
+  List<PdfOutlineItem> children
+  PdfOutlineItem add(String title, LinkTarget? target, {bool open = false, bool bold = false, bool italic = false, RgbColor? color})
+  PdfOutlineItem(String title, LinkTarget? target, {bool open = false, bool bold = false, bool italic = false, RgbColor? color})
+  RgbColor? color
+  String title
+  bool bold
+  bool italic
+  bool open
+final class PdfPage
+  PdfCanvas canvas
+  PdfRect mediaBox
+  PdfRect? artBox
+  PdfRect? bleedBox
+  PdfRect? cropBox
+  PdfRect? trimBox
+  double height
+  double width
+  int rotation
+  void link(PdfRect rect, LinkTarget target)
+final class PdfReal extends PdfObject
+  PdfReal(double value, {int precision = 5})
+  bool ==(Object other)
+  double value
+  int hashCode
+  int precision
+  void writeTo(BytesBuilder out)
+final class PdfRect
+  PdfArray toArray()
+  PdfRect(double left, double bottom, double width, double height)
+  PdfRect.fromEdges(double left, double bottom, double right, double top)
+  String toString()
+  bool ==(Object other)
+  double bottom
+  double height
+  double left
+  double right
+  double top
+  double width
+  int hashCode
+final class PdfRef extends PdfObject
+  PdfRef(int number, [int generation = 0])
+  bool ==(Object other)
+  int generation
+  int hashCode
+  int number
+  void writeTo(BytesBuilder out)
+final class PdfStream extends PdfObject
+  PdfDict dict
+  PdfStream(List<int> data, {PdfDict? dict, bool compress = true})
+  Uint8List data
+  bool compress
+  void writeTo(BytesBuilder out)
+final class PdfString extends PdfObject
+  PdfString(List<int> bytes, {bool hex = false})
+  PdfString.text(String text)
+  Uint8List bytes
+  bool ==(Object other)
+  bool hex
+  int hashCode
+  void writeTo(BytesBuilder out)
+final class PdfTextStyle
+  List<ShapedGlyph> shape(String text)
+  PdfFont font
+  PdfTextStyle copyWith({PdfFont? font, double? size, double? characterSpacing, double? wordSpacing, double? rise, double? horizontalScaling, TextRenderMode? renderMode, bool? kerning, bool? ligatures})
+  PdfTextStyle(PdfFont font, double size, {double characterSpacing = 0, double wordSpacing = 0, double rise = 0, double horizontalScaling = 100, TextRenderMode renderMode = TextRenderMode.fill, bool kerning = true, bool ligatures = false})
+  TextRenderMode renderMode
+  bool ==(Object other)
+  bool kerning
+  bool ligatures
+  double characterSpacing
+  double horizontalScaling
+  double measure(String text)
+  double rise
+  double size
+  double widthOf(List<ShapedGlyph> glyphs)
+  double wordSpacing
+  int hashCode
+final class PdfWriter
+  ({PdfRef info, PdfRef metadata}) writeInfo(PdfInfo info)
+  PdfRef reserve()
+  PdfRef write(PdfObject object, [PdfRef? ref])
+  PdfWriter(void Function(List<int>) _sink, {PdfWriterOptions options = const PdfWriterOptions(), String version = '1.4'})
+  PdfWriterOptions options
+  void close({required PdfRef root, PdfRef? info})
+final class PdfWriterOptions
+  DateTime? creationDate
+  PdfWriterOptions({bool compress = true, bool compact = true, bool deterministic = false, DateTime? creationDate, int compressionLevel = 6})
+  bool compact
+  bool compress
+  bool deterministic
+  int compressionLevel
+final class PenaltyItem extends LineItem
+  PenaltyItem(double width, double penalty, {bool flagged = false, TextRun? run})
+  TextRun? run
+  bool flagged
+  bool isForced
+  double penalty
+  double width
+  static double forced
+  static double never
+final class PngImage extends PdfImage
+  PngColorType colorType
+  PngImage.parse(Uint8List bytes)
+  Uint8List data
+  Uint8List? iccProfile
+  Uint8List? palette
+  Uint8List? transparency
+  bool interlaced
+  int bitDepth
+  int height
+  int orientation
+  int width
+  void writeTo(PdfWriter writer)
+final class RadialShading extends PdfShading
+  RadialShading(double fx, double fy, double fr, double cx, double cy, double r, List<GradientStop> stops, {bool extendStart = true, bool extendEnd = true})
+  double cx
+  double cy
+  double fr
+  double fx
+  double fy
+  double r
+final class RgbColor extends PdfColor
+  List<double> components
+  RgbColor(double red, double green, double blue)
+  bool ==(Object other)
+  double blue
+  double green
+  double red
+  int hashCode
+final class ShapedGlyph
+  ShapedGlyph(int id, String text, double advance, [double kerning = 0])
+  String text
+  double advance
+  double kerning
+  int id
+final class SpacerBox extends LayoutBox
+  SpacerBox(double height)
+  double height
+final class SpotColor extends PdfColor
+  CmykColor alternate
+  List<double> components
+  SpotColor(String name, CmykColor alternate, [double tint = 1])
+  String name
+  bool ==(Object other)
+  double tint
+  int hashCode
+final class StandardFont extends PdfFont
+  List<ShapedGlyph> shape(String text, {bool kerning = true, bool ligatures = false})
+  List<int> encode(List<ShapedGlyph> glyphs)
+  StandardFont.named(String name)
+  String name
+  bool covers(int codePoint)
+  double ascender
+  double capHeight
+  double descender
+  double lineGap
+  double underlinePosition
+  double underlineThickness
+  double xHeight
+  static StandardFont courier
+  static StandardFont helvetica
+  static StandardFont timesRoman
+  void writeTo(PdfWriter writer)
+final class SvgImage implements Graphic
+  List<String> warnings
+  SvgImage.parse(String text, {PdfFont? Function(String, {required bool bold, required bool italic})? fonts, Uint8List? Function(String)? images, double pixelSize = 0.75})
+  double height
+  double intrinsicHeight
+  double intrinsicWidth
+  double pixelSize
+  double width
+  void draw(PdfCanvas canvas, PdfRect rect)
+  void paint(PdfCanvas canvas, PdfRect rect)
+final class SvgPath
+  List<PathSegment> segments
+  PdfRect? bounds
+  SvgPath transform(PdfMatrix matrix)
+  SvgPath(List<PathSegment> segments)
+  SvgPath.ellipse(double cx, double cy, double rx, double ry)
+  SvgPath.parse(String data)
+  SvgPath.polyline(List<double> points, {required bool closed})
+  SvgPath.rect(double x, double y, double w, double h, [double rx = 0, double ry = 0])
+  bool isEmpty
+  void addTo(PdfCanvas canvas)
+final class TableBox extends LayoutBox
+  BoxAlign align
+  List<ColumnWidth> columns
+  List<TableRow> rows
+  TableBox(List<TableRow> rows, {required List<ColumnWidth> columns, int headerRows = 0, double? width, bool shrinkToContent = false, BoxAlign align = BoxAlign.left, BoxStyle style = const BoxStyle()})
+  bool shrinkToContent
+  double? width
+  int headerRows
+final class TableCell
+  Border border
+  EdgeInsets padding
+  List<LayoutBox> content
+  PdfColor? background
+  TableCell(List<LayoutBox> content, {int colSpan = 1, int rowSpan = 1, EdgeInsets padding = const EdgeInsets.all(4), PdfColor? background, Border border = Border.none, VerticalAlign verticalAlign = VerticalAlign.top})
+  VerticalAlign verticalAlign
+  int colSpan
+  int rowSpan
+final class TableRow
+  List<TableCell> cells
+  TableRow(List<TableCell> cells, {double minHeight = 0})
+  double minHeight
+final class TextFragment extends LineFragment
+  List<ShapedGlyph> glyphs
+  PdfTextStyle style
+  String text
+  TextFragment(double x, double width, TextRun run, String text, List<ShapedGlyph> glyphs, PdfTextStyle style)
+  TextRun run
+final class TextRun extends InlineContent
+  InlineDecoration? decoration
+  LinkTarget? link
+  List<PdfFont> fallbackFonts
+  PdfColor? color
+  PdfTextStyle style
+  String text
+  String? anchor
+  TextRun withStyle(PdfTextStyle style)
+  TextRun withText(String text)
+  TextRun(String text, PdfTextStyle style, {PdfColor? color, bool underline = false, bool strikethrough = false, LinkTarget? link, String? anchor, InlineDecoration? decoration, List<PdfFont> fallbackFonts = const []})
+  bool strikethrough
+  bool underline
+final class TransparencyGroup
+  TransparencyGroup({bool isolated = false, bool knockout = false})
+  bool isolated
+  bool knockout
+final class UriTarget extends LinkTarget
+  String uri
+  UriTarget(String uri)
+final class XyzDestination extends PdfDestination
+  XyzDestination(PdfPage page, {double? left, double? top, double? zoom})
+  double? left
+  double? top
+  double? zoom
+int adler32(List<int> data)
+sealed class ColumnWidth
+  ColumnWidth.auto()
+  ColumnWidth.fixed(double points)
+  ColumnWidth.fraction(double weight)
+sealed class InlineContent
+sealed class LayoutBox
+  BoxStyle style
+sealed class LineFragment
+  double width
+  double x
+sealed class LineHeight
+  LineHeight.exact(double points)
+  LineHeight.font({double leading})
+  LineHeight.multiple(double factor)
+sealed class LineItem
+  double width
+sealed class LinkTarget
+  LinkTarget.destination(PdfDestination destination)
+  LinkTarget.named(String name)
+  LinkTarget.uri(String uri)
+sealed class PathSegment
+  PathSegment()
+sealed class PdfColor
+  List<double> components
+  PdfColor.cmyk(double cyan, double magenta, double yellow, double black)
+  PdfColor.gray(double level)
+  PdfColor.hex(String hex)
+  PdfColor.rgb(double red, double green, double blue)
+sealed class PdfDestination
+  PdfDestination.fit(PdfPage page)
+  PdfDestination.fitWidth(PdfPage page, {double? top})
+  PdfDestination.xyz(PdfPage page, {double? left, double? top, double? zoom})
+  PdfPage page
+sealed class PdfFont
+  List<ShapedGlyph> shape(String text, {bool kerning = true, bool ligatures = false})
+  List<int> encode(List<ShapedGlyph> glyphs)
+  PdfRef reference(PdfWriter writer)
+  String name
+  bool covers(int codePoint)
+  double ascender
+  double capHeight
+  double descender
+  double lineGap
+  double underlinePosition
+  double underlineThickness
+  double widthOf(String text, double size, {bool kerning = true})
+  double xHeight
+  void writeTo(PdfWriter writer)
+sealed class PdfImage implements Graphic
+  PdfImage.parse(Uint8List bytes)
+  PdfRef reference(PdfWriter writer)
+  double intrinsicHeight
+  double intrinsicWidth
+  int height
+  int orientation
+  int width
+  void paint(PdfCanvas canvas, PdfRect rect)
+  void writeTo(PdfWriter writer)
+sealed class PdfObject
+  PdfObject()
+  String toString()
+  Uint8List toBytes()
+  void writeTo(BytesBuilder out)
+sealed class PdfShading
+  List<GradientStop> stops
+  bool extendEnd
+  bool extendStart
+typedef LineWidths = double Function(int)
+typedef SvgFontResolver = PdfFont? Function(String, {required bool bold, required bool italic})
+typedef SvgImageResolver = Uint8List? Function(String)

@@ -26,6 +26,9 @@ jobs:
       run: dart analyze --fatal-infos .
     - name: Check Dart formatting
       run: dart format --output=none --set-exit-if-changed .
+    - name: Check the public API against its snapshot
+      if: matrix.os == 'ubuntu-latest'
+      run: dart run tool/api_check.dart
     - name: Run Dart tests
       run: dart test
   web:

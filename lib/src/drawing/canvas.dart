@@ -263,8 +263,8 @@ final class PdfForm {
     this.group,
     this.matrix,
   }) {
-    draw(canvas);
-    if (canvas.unbalanced case final problem?) throw StateError(problem);
+    draw(_canvas);
+    if (_canvas._unbalanced case final problem?) throw StateError(problem);
   }
 
   /// The form's bounding box, in its own space.
@@ -276,10 +276,35 @@ final class PdfForm {
   /// The transformation from form space to the space it is painted in.
   final PdfMatrix? matrix;
 
-  /// The form's content.
-  @internal
-  final PdfCanvas canvas = PdfCanvas();
+  final PdfCanvas _canvas = PdfCanvas._();
 }
+
+/// The canvas [form] is drawn on.
+@internal
+PdfCanvas formCanvas(PdfForm form) => form._canvas;
+
+/// A new, empty canvas (for a page).
+@internal
+PdfCanvas newCanvas() => PdfCanvas._();
+
+/// The resources [canvas]'s content uses, by category (`Font`,
+/// `XObject`, `ExtGState`, `ColorSpace`, `Shading`) and name.
+@internal
+Map<String, Map<String, Resource>> canvasResources(PdfCanvas canvas) =>
+    canvas._resources;
+
+/// The content stream of [canvas].
+@internal
+Uint8List canvasContent(PdfCanvas canvas) => canvas._content.toBytes();
+
+/// Whether [canvas]'s content uses transparency.
+@internal
+bool canvasUsesTransparency(PdfCanvas canvas) => canvas._usesTransparency;
+
+/// What is left open at the end of [canvas]'s content (a save without its
+/// restore, an unpainted path), or null.
+@internal
+String? canvasUnbalanced(PdfCanvas canvas) => canvas._unbalanced;
 
 /// A resource content refers to by name.
 @internal
@@ -370,35 +395,20 @@ final class GraphicsStateResource extends Resource {
 
 /// A page's or form's content: operators appended in order.
 final class PdfCanvas {
-  /// An empty canvas.
-  @internal
-  new();
+  new _();
 
   final BytesBuilder _content = BytesBuilder(copy: false);
 
-  /// The resources the content uses, by category (`Font`, `XObject`,
-  /// `ExtGState`, `ColorSpace`) and name.
-  @internal
-  final Map<String, Map<String, Resource>> resources = {};
+  final Map<String, Map<String, Resource>> _resources = {};
 
   final Map<Object, String> _names = {};
 
   int _depth = 0;
   bool _path = false;
 
-  /// Whether the content uses transparency (opacity, blend modes, soft
-  /// masks, or groups).
-  @internal
-  bool usesTransparency = false;
+  bool _usesTransparency = false;
 
-  /// The content stream's bytes.
-  @internal
-  Uint8List get content => _content.toBytes();
-
-  /// What is left open at the end of the content: a [save] without its
-  /// [restore], or an unpainted path; null when nothing is.
-  @internal
-  String? get unbalanced => _depth != 0
+  String? get _unbalanced => _depth != 0
       ? '$_depth save() calls without restore()'
       : _path
       ? 'a path was left without painting it'
@@ -433,7 +443,7 @@ final class PdfCanvas {
   /// The name [resource] has in [category], given by its first use.
   String _use(String category, Object key, Resource resource, String prefix) {
     final name = _names[key] ??= '$prefix${_names.length + 1}';
-    (resources[category] ??= {})[name] = resource;
+    (_resources[category] ??= {})[name] = resource;
     return name;
   }
 
@@ -531,7 +541,7 @@ final class PdfCanvas {
 
   void _graphicsState(Object key, GraphicsStateResource state) {
     _noPath('a graphics state change');
-    usesTransparency = true;
+    _usesTransparency = true;
     _named('gs', _use('ExtGState', key, state, 'GS'));
   }
 
@@ -699,8 +709,8 @@ final class PdfCanvas {
   /// Paints [form] (`Do`).
   void form(PdfForm form) {
     _noPath('form()');
-    if (form.group != null || form.canvas.usesTransparency) {
-      usesTransparency = true;
+    if (form.group != null || form._canvas._usesTransparency) {
+      _usesTransparency = true;
     }
     _named('Do', _use('XObject', form, FormResource(form), 'Fm'));
   }
