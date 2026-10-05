@@ -172,6 +172,15 @@ final class OpenTypeFont {
   /// The height of capital letters, when the font says.
   int? capHeight;
 
+  /// The `OS/2` typographic ascender (`sTypoAscender`), if any.
+  int? typoAscender;
+
+  /// The `OS/2` typographic descender (`sTypoDescender`), if any.
+  int? typoDescender;
+
+  /// The `OS/2` typographic line gap (`sTypoLineGap`), if any.
+  int? typoLineGap;
+
   /// The height of lowercase letters, when the font says.
   int? xHeight;
 
@@ -241,6 +250,11 @@ final class OpenTypeFont {
     final version = _data.u16(at);
     weightClass = _data.u16(at + 4);
     fsType = _data.u16(at + 8);
+    if (t.length >= 74) {
+      typoAscender = _data.i16(at + 68);
+      typoDescender = _data.i16(at + 70);
+      typoLineGap = _data.i16(at + 72);
+    }
     if (version >= 2 && t.length >= 90) {
       xHeight = _data.i16(at + 86);
       capHeight = _data.i16(at + 88);
@@ -435,6 +449,13 @@ final class OpenTypeFont {
   /// table.
   int kerning(int left, int right) =>
       _gposKerning?.call(left, right) ?? _kernTable[(left << 16) | right] ?? 0;
+
+  /// Kerning between glyphs [left] and [right] from the `kern` table
+  /// alone (format 0 subtables), in font units; null when it has no pair.
+  int? kernTablePair(int left, int right) => _kernTable[(left << 16) | right];
+
+  /// Whether the font has a `kern` table with pairs.
+  bool get hasKernTable => _kernTable.isNotEmpty;
 
   late final Map<int, int> _kernTable = _readKernTable();
 

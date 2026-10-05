@@ -444,6 +444,7 @@ final class OpenTypeFont
   Uint8List glyphData(int glyph)
   Uint8List? table(String tag)
   bool embeddingRestricted
+  bool hasKernTable
   bool hasTable(String tag)
   bool isFixedPitch (settable)
   bool isTrueType
@@ -461,6 +462,10 @@ final class OpenTypeFont
   int unitsPerEm (settable)
   int weightClass (settable)
   int? capHeight (settable)
+  int? kernTablePair(int left, int right)
+  int? typoAscender (settable)
+  int? typoDescender (settable)
+  int? typoLineGap (settable)
   int? underlinePosition (settable)
   int? underlineThickness (settable)
   int? xHeight (settable)

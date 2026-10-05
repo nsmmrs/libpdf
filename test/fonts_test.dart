@@ -100,6 +100,8 @@ void main() {
     expect(font.glyphFor(0x41), isNot(0));
     expect(font.isTrueType, isTrue);
     expect(font.ascender, greaterThan(0));
+    expect(font.typoAscender, isNotNull);
+    expect(font.typoDescender, lessThan(0));
   });
 
   test('standard font metrics and kerning', () {
