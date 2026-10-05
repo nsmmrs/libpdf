@@ -7,3 +7,9 @@ Subsets distributed with asciidoctor-epub3 2.3.0:
 - `mplus1p-regular-multilingual.ttf`: M+ 1p, multilingual subset (M+ FONTS
   license: unlimited permission to use, copy and distribute, with or
   without modification; © M+ FONTS PROJECT, Coji Morishita).
+
+Made from them:
+
+- `notoserif-kern-subtables.ttf`: `notoserif-regular-latin.ttf` with a
+  `kern` table of two subtables (A V −80; then T o −60 and A V −40), made
+  with fontTools.

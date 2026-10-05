@@ -104,6 +104,34 @@ void main() {
     expect(font.typoDescender, lessThan(0));
   });
 
+  test('kern table pairs, from all subtables or one', () {
+    final font = EmbeddedFont.parse(
+      File('test/fonts/notoserif-kern-subtables.ttf').readAsBytesSync(),
+    ).font;
+    int glyph(String char) => font.glyphFor(char.codeUnitAt(0));
+    // A later subtable's pair wins; one subtable alone gives its own.
+    expect(font.kernTablePair(glyph('A'), glyph('V')), -40);
+    expect(font.kernTablePair(glyph('A'), glyph('V'), subtable: 0), -80);
+    expect(font.kernTablePair(glyph('T'), glyph('o'), subtable: 0), isNull);
+    expect(font.kernTablePair(glyph('T'), glyph('o'), subtable: 1), -60);
+    expect(font.kernTablePair(glyph('T'), glyph('o'), subtable: 2), isNull);
+  });
+
+  test('text kerned by one kern subtable alone', () {
+    final bytes = File('test/fonts/notoserif-kern-subtables.ttf')
+        .readAsBytesSync();
+    final first = EmbeddedFont.parse(bytes, kernTableSubtable: 0);
+    final second = EmbeddedFont.parse(bytes, kernTableSubtable: 1);
+    double kerning(EmbeddedFont font, String text) =>
+        font.shape(text).first.kerning;
+    final unit = 1000 / first.font.unitsPerEm;
+    // (Without a subtable, the font's GPOS pairs kern instead.)
+    expect(kerning(first, 'AV'), closeTo(-80 * unit, 1e-6));
+    expect(kerning(first, 'To'), 0);
+    expect(kerning(second, 'AV'), closeTo(-40 * unit, 1e-6));
+    expect(kerning(second, 'To'), closeTo(-60 * unit, 1e-6));
+  });
+
   test('standard font metrics and kerning', () {
     final helvetica = StandardFont.helvetica;
     expect(helvetica.widthOf('A', 1000, kerning: false), 667);

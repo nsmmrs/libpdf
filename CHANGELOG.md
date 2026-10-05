@@ -96,6 +96,9 @@
 - `ColumnWidth.computed`: a table column whose width is computed from the
   table's width.
 - `SvgImage.rootAttribute`: the root element's attributes as written.
+- `kernTablePair(subtable:)` and `EmbeddedFont.parse(kernTableSubtable:)`:
+  kerning from one subtable of the `kern` table alone (Prawn kerns with
+  the first).
 - Tables: `TableCell.verticalOffset` places a cell's content by a
   function of the room and the content's height, `TableCell.decoration`
   paints a cell's border in place of `border`, and `TableBox.stripes`

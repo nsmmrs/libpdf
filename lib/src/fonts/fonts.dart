@@ -269,23 +269,31 @@ final class _StandardGlyphs {
 /// glyphs used (TrueType outlines) and written as a Type0 font with
 /// Identity-H encoding and a ToUnicode map, so text extracts and searches.
 final class EmbeddedFont extends PdfFont {
-  new _(this.font, {required this.subset, required this.truncateWidths})
-    : super._();
+  new _(
+    this.font, {
+    required this.subset,
+    required this.truncateWidths,
+    this.kernTableSubtable,
+  }) : super._();
 
   /// The font in [bytes] (the font at [index] of a collection); with
   /// [subset] (the default), only the glyphs used are embedded. The
   /// glyph widths written are rounded to whole 1000ths of the em, or
   /// truncated with [truncateWidths] (as some engines do; text then lines
-  /// up with theirs).
+  /// up with theirs). Text is kerned by the font's GPOS pair adjustments,
+  /// else its `kern` table, or by the `kern` table's subtable
+  /// [kernTableSubtable] alone (Prawn kerns with the first).
   factory parse(
     List<int> bytes, {
     int index = 0,
     bool subset = true,
     bool truncateWidths = false,
+    int? kernTableSubtable,
   }) => EmbeddedFont._(
     OpenTypeFont.parse(bytes, index: index),
     subset: subset,
     truncateWidths: truncateWidths,
+    kernTableSubtable: kernTableSubtable,
   );
 
   /// The font program.
@@ -296,6 +304,14 @@ final class EmbeddedFont extends PdfFont {
 
   /// Whether the widths written are truncated rather than rounded.
   final bool truncateWidths;
+
+  /// The `kern` subtable text is kerned by alone, if any.
+  final int? kernTableSubtable;
+
+  int _kerning(int left, int right) => switch (kernTableSubtable) {
+    final subtable? => font.kernTablePair(left, right, subtable: subtable) ?? 0,
+    null => font.kerning(left, right),
+  };
 
   /// The glyphs used so far, with the text each stands for.
   final Map<int, String> _used = {};
@@ -384,7 +400,7 @@ final class EmbeddedFont extends PdfFont {
           texts[k],
           _scale(font.advance(ids[k])),
           kerning && k + 1 < ids.length
-              ? _scale(font.kerning(ids[k], ids[k + 1]))
+              ? _scale(_kerning(ids[k], ids[k + 1]))
               : 0,
         ),
     ];

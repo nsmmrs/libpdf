@@ -451,24 +451,38 @@ final class OpenTypeFont {
       _gposKerning?.call(left, right) ?? _kernTable[(left << 16) | right] ?? 0;
 
   /// Kerning between glyphs [left] and [right] from the `kern` table
-  /// alone (format 0 subtables), in font units; null when it has no pair.
-  int? kernTablePair(int left, int right) => _kernTable[(left << 16) | right];
+  /// alone (its horizontal format 0 subtables), in font units; null when
+  /// it has no pair. [subtable] limits it to that subtable (by its place
+  /// in the table: Prawn, say, reads only the first).
+  int? kernTablePair(int left, int right, {int? subtable}) {
+    final key = (left << 16) | right;
+    if (subtable == null) return _kernTable[key];
+    final tables = _kernSubtables;
+    return subtable < tables.length ? tables[subtable][key] : null;
+  }
 
   /// Whether the font has a `kern` table with pairs.
   bool get hasKernTable => _kernTable.isNotEmpty;
 
-  late final Map<int, int> _kernTable = _readKernTable();
+  late final Map<int, int> _kernTable = {
+    for (final table in _kernSubtables) ...table,
+  };
 
-  Map<int, int> _readKernTable() {
+  /// The pairs of each subtable of the `kern` table, in order (none for a
+  /// subtable that isn't horizontal format 0).
+  late final List<Map<int, int>> _kernSubtables = _readKernSubtables();
+
+  List<Map<int, int>> _readKernSubtables() {
     final t = _tables['kern'];
-    final pairs = <int, int>{};
-    if (t == null) return pairs;
+    final tables = <Map<int, int>>[];
+    if (t == null) return tables;
     final at = t.offset;
     final count = _data.u16(at + 2);
     var sub = at + 4;
     for (var i = 0; i < count; i++) {
       final length = _data.u16(sub + 2);
       final coverage = _data.u16(sub + 4);
+      final pairs = <int, int>{};
       // Format 0, horizontal kerning.
       if (coverage >> 8 == 0 && coverage & 0x1 != 0) {
         final nPairs = _data.u16(sub + 6);
@@ -479,9 +493,10 @@ final class OpenTypeFont {
           );
         }
       }
+      tables.add(pairs);
       sub += length;
     }
-    return pairs;
+    return tables;
   }
 
   late final int? Function(int, int)? _gposKerning = _readGposKerning();
