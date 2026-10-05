@@ -11,3 +11,10 @@
   streaming writer with cross-reference tables, or cross-reference and
   object streams, document information and XMP metadata, file identifiers,
   and a deterministic mode. Checked with `qpdf --check` and poppler.
+- Fonts: OpenType parsing (TrueType and CFF outlines, collections, cmap
+  formats 0, 4, 6 and 12, kerning from `kern` and GPOS pair adjustment,
+  `liga` ligatures from GSUB); TrueType subsetting that keeps glyph ids;
+  embedding as Type0/Identity-H fonts with widths and a ToUnicode map, so
+  text stays extractable; and the 14 standard fonts with metrics, kerning
+  and WinAnsi encoding generated from the Adobe AFM files. CFF fonts are
+  embedded whole for now.
