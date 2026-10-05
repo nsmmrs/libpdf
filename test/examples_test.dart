@@ -17,6 +17,7 @@ void main() {
   tearDownAll(() => dir.deleteSync(recursive: true));
 
   for (final (name, run) in [
+    ('hello', hello.main),
     ('report', report.main),
     ('svg_chart', chart.main),
     ('booklet', booklet.main),
@@ -32,12 +33,4 @@ void main() {
       }
     });
   }
-
-  test('hello', () {
-    final previous = Directory.current;
-    Directory.current = dir;
-    addTearDown(() => Directory.current = previous);
-    hello.main();
-    expect(File('${dir.path}/hello.pdf').existsSync(), isTrue);
-  });
 }

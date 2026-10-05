@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:libpdf/libpdf.dart';
 
-void main() {
+void main(List<String> args) {
   final document = PdfDocument(info: const PdfInfo(title: 'Hello'));
   final page = document.addPage(const PdfRect(0, 0, 595, 842)); // A4
   final style = PdfTextStyle(StandardFont.helvetica, 24);
@@ -16,5 +16,6 @@ void main() {
     const PdfRect(72, 700, 451, 60),
     const LinkTarget.uri('https://example.org/'),
   );
-  File('hello.pdf').writeAsBytesSync(document.save());
+  File(args.isEmpty ? 'hello.pdf' : args.first)
+      .writeAsBytesSync(document.save());
 }
