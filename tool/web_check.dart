@@ -1,65 +1,45 @@
 // Compiles the library to JavaScript in CI and writes a deterministic PDF
-// (text, and PNG images decoded and compressed again):
+// (text, shapes, transparency, PNG images decoded and compressed again,
+// a link, an outline and page labels):
 // nothing in the library may depend on dart:io, and the output must be
 // the same bytes on the VM and on JavaScript (the CI job compares the
 // digest it prints with the VM's).
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:libpdf/libpdf.dart';
 
 void main() {
-  final out = BytesBuilder(copy: false);
-  final writer = PdfWriter(
-    out.add,
+  final document = PdfDocument(info: const PdfInfo(title: 'web'));
+  final page = document.addPage(const PdfRect(0, 0, 612, 792));
+  final style = PdfTextStyle(StandardFont.helvetica, 12, wordSpacing: 1);
+  page.canvas
+    ..text('web ' * 40, 72, 720, style)
+    ..setFillColor(const SpotColor('Spot', CmykColor(0, 1, 1, 0)))
+    ..roundedRect(const PdfRect(72, 500, 100, 50), 8)
+    ..fill()
+    ..saved(() {
+      page.canvas
+        ..opacity(fill: 0.5)
+        ..rotate(15)
+        ..circle(300, 500, 40)
+        ..fill();
+    });
+  for (final (i, png) in [_rgba16Interlaced, _paletteAlpha].indexed) {
+    page.canvas.image(
+      PdfImage.parse(base64.decode(png)),
+      PdfRect(72 + 48.0 * i, 600, 32, 32),
+    );
+  }
+  page.link(
+    const PdfRect(72, 715, 100, 15),
+    const LinkTarget.uri('https://example.org/'),
+  );
+  document
+    ..addOutline('web', LinkTarget.destination(PdfDestination.fit(page)))
+    ..labelPages(0, const PageLabel(style: PageNumberStyle.lowerRoman));
+  final pdf = document.save(
     options: const PdfWriterOptions(deterministic: true),
   );
-  final catalog = writer.reserve();
-  final pages = writer.reserve();
-  final images = [
-    for (final png in [_rgba16Interlaced, _paletteAlpha])
-      PdfImage.parse(base64.decode(png)),
-  ];
-  final content = writer.write(
-    PdfStream(
-      latin1.encode(
-        'BT /F1 12 Tf 72 720 Td (${'web ' * 400}) Tj ET '
-        'q 32 0 0 32 72 600 cm /Im0 Do Q q 32 0 0 32 120 600 cm /Im1 Do Q',
-      ),
-    ),
-  );
-  final page = writer.write(
-    PdfDict({
-      'Type': const PdfName('Page'),
-      'Parent': pages,
-      'MediaBox': PdfArray.numbers([0, 0, 612, 792]),
-      'Resources': PdfDict({
-        'XObject': PdfDict({
-          for (final (i, image) in images.indexed)
-            'Im$i': image.reference(writer),
-        }),
-      }),
-      'Contents': content,
-    }),
-  );
-  for (final image in images) {
-    image.writeTo(writer);
-  }
-  writer
-    ..write(
-      PdfDict({
-        'Type': const PdfName('Pages'),
-        'Kids': PdfArray([page]),
-        'Count': const PdfInt(1),
-      }),
-      pages,
-    )
-    ..write(
-      PdfDict({'Type': const PdfName('Catalog'), 'Pages': pages}),
-      catalog,
-    )
-    ..close(root: catalog);
-  final pdf = out.takeBytes();
   final digest = [for (final b in md5(pdf)) b.toRadixString(16).padLeft(2, '0')]
       .join();
   // The digest is the program's output.

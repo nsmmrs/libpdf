@@ -25,3 +25,15 @@
   otherwise: interlaced images, alpha split into a soft mask, palette
   transparency, color-key transparency, embedded ICC profiles; damaged
   files rejected. Checked against PngSuite by rendering with poppler.
+- Drawing: `PdfDocument` with pages (media, crop, bleed, trim and art
+  boxes; rotation) drawn on a `PdfCanvas`: paths (lines, Bézier curves,
+  rectangles, rounded rectangles, ellipses), fill and stroke with the
+  nonzero or even-odd rule, clipping, gray, RGB, CMYK and spot colors,
+  line width, caps, joins, miter limit and dashes, transforms and
+  save/restore; opacity, blend modes, soft masks and transparency groups;
+  reusable forms; images; text at explicit positions with kerning,
+  character and word spacing (also for embedded fonts), rise, horizontal
+  scaling and render modes, measured as drawn. Links (URIs, named and
+  explicit destinations), named destinations, outlines with nesting and
+  styles, page labels, page mode, language and viewer preferences. Each
+  document declares the lowest PDF version it needs.

@@ -1,10 +1,42 @@
 /// libpdf: a pure-Dart PDF library written from ISO 32000.
 ///
-/// This library holds the object layer: the PDF object model (`PdfObject`
-/// and its kinds), Flate compression, and a `PdfWriter` that writes a file
-/// with cross-reference tables or streams.
+/// The object layer: the PDF object model (`PdfObject` and its kinds),
+/// Flate compression, and a `PdfWriter` that writes a file with
+/// cross-reference tables or streams. Fonts (`PdfFont`) and images
+/// (`PdfImage`). The drawing layer: a `PdfDocument` of pages drawn on
+/// `PdfCanvas`es, with links, destinations, outlines and page labels.
 library;
 
+export 'src/drawing/canvas.dart'
+    show
+        BlendMode,
+        LineCap,
+        LineJoin,
+        PdfCanvas,
+        PdfForm,
+        PdfTextStyle,
+        SoftMaskKind,
+        TextRenderMode,
+        TransparencyGroup;
+export 'src/drawing/color.dart'
+    show CmykColor, GrayColor, PdfColor, RgbColor, SpotColor;
+export 'src/drawing/document.dart'
+    show
+        DestinationTarget,
+        FitDestination,
+        FitWidthDestination,
+        LinkTarget,
+        NamedTarget,
+        PageLabel,
+        PageMode,
+        PageNumberStyle,
+        PdfDestination,
+        PdfDocument,
+        PdfOutlineItem,
+        PdfPage,
+        UriTarget,
+        XyzDestination;
+export 'src/drawing/geometry.dart' show PdfMatrix, PdfRect;
 export 'src/flate.dart' show adler32, deflate, inflate, zlibDecode, zlibEncode;
 export 'src/fonts/fonts.dart'
     show EmbeddedFont, PdfFont, ShapedGlyph, StandardFont;
