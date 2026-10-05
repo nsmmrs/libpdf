@@ -14,6 +14,8 @@ final class StandardFontData {
     required this.xHeight,
     required this.italicAngle,
     required this.stemV,
+    required this.underlinePosition,
+    required this.underlineThickness,
     required this.fixedPitch,
     required this.symbolic,
     required this.glyphs,
@@ -43,6 +45,12 @@ final class StandardFontData {
 
   /// The dominant vertical stem width.
   final int stemV;
+
+  /// The center of the underline (negative: below the baseline).
+  final int underlinePosition;
+
+  /// The underline's thickness.
+  final int underlineThickness;
 
   /// Whether every glyph has the same width.
   final bool fixedPitch;

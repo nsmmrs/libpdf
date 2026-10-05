@@ -56,6 +56,13 @@ sealed class PdfFont {
   /// The height of lowercase letters, in 1000ths of the em.
   double get xHeight;
 
+  /// The position of the underline's center, in 1000ths of the em
+  /// (negative: below the baseline).
+  double get underlinePosition;
+
+  /// The underline's thickness, in 1000ths of the em.
+  double get underlineThickness;
+
   /// Whether the font has a glyph for [codePoint].
   bool covers(int codePoint);
 
@@ -130,6 +137,12 @@ final class StandardFont extends PdfFont {
 
   @override
   double get xHeight => _data.xHeight.toDouble();
+
+  @override
+  double get underlinePosition => _data.underlinePosition.toDouble();
+
+  @override
+  double get underlineThickness => _data.underlineThickness.toDouble();
 
   late final _StandardGlyphs _glyphs = _StandardGlyphs.parse(_data);
 
@@ -294,6 +307,16 @@ final class EmbeddedFont extends PdfFont {
 
   @override
   double get xHeight => _scale(font.xHeight ?? (font.ascender ~/ 2));
+
+  // `post` gives the top of the underline; PdfFont, its center.
+  @override
+  double get underlinePosition =>
+      _scale(font.underlinePosition ?? -font.unitsPerEm ~/ 10) -
+      underlineThickness / 2;
+
+  @override
+  double get underlineThickness =>
+      _scale(font.underlineThickness ?? font.unitsPerEm ~/ 20);
 
   @override
   bool covers(int codePoint) => font.glyphFor(codePoint) != 0;

@@ -43,6 +43,35 @@ export 'src/fonts/fonts.dart'
 export 'src/fonts/opentype.dart' show FontFormatException, OpenTypeFont;
 export 'src/images/images.dart'
     show ImageFormatException, JpegImage, PdfImage, PngColorType, PngImage;
+export 'src/layout/inline.dart'
+    show InlineAlignment, InlineContent, InlineImage, TextRun;
+export 'src/layout/line_break.dart'
+    show LineBreak, LineBreakClass, lineBreakClass, lineBreaks;
+export 'src/layout/line_break_data.g.dart' show unicodeVersion;
+export 'src/layout/paragraph.dart'
+    show
+        BoxItem,
+        ExactLineHeight,
+        FirstFitLineBreaker,
+        FontLineHeight,
+        GlueItem,
+        Hyphenator,
+        ImageFragment,
+        ItemLineBreaker,
+        KnuthPlassLineBreaker,
+        Line,
+        LineBreaker,
+        LineFragment,
+        LineHeight,
+        LineItem,
+        LineWidths,
+        MultipleLineHeight,
+        Paragraph,
+        PenaltyItem,
+        TextAlign,
+        TextFragment,
+        buildLines,
+        paragraphItems;
 export 'src/md5.dart' show md5;
 export 'src/objects.dart'
     show

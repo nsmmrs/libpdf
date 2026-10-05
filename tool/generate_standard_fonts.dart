@@ -81,6 +81,8 @@ void main() {
       ..writeln('    xHeight: ${header['XHeight'] ?? 0},')
       ..writeln('    italicAngle: ${header['ItalicAngle']},')
       ..writeln('    stemV: ${header['StdVW'] ?? 80},')
+      ..writeln('    underlinePosition: ${header['UnderlinePosition']},')
+      ..writeln('    underlineThickness: ${header['UnderlineThickness']},')
       ..writeln('    fixedPitch: ${header['IsFixedPitch'] == 'true'},')
       ..writeln('    symbolic: ${name == 'Symbol' || name == 'ZapfDingbats'},')
       ..writeln("    glyphs: '${glyphs.join(';')}',")

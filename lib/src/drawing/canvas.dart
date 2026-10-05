@@ -168,6 +168,55 @@ final class PdfTextStyle {
   /// Whether the font's ligatures apply (embedded fonts).
   final bool ligatures;
 
+  /// This style with the values given changed.
+  PdfTextStyle copyWith({
+    PdfFont? font,
+    double? size,
+    double? characterSpacing,
+    double? wordSpacing,
+    double? rise,
+    double? horizontalScaling,
+    TextRenderMode? renderMode,
+    bool? kerning,
+    bool? ligatures,
+  }) => PdfTextStyle(
+    font ?? this.font,
+    size ?? this.size,
+    characterSpacing: characterSpacing ?? this.characterSpacing,
+    wordSpacing: wordSpacing ?? this.wordSpacing,
+    rise: rise ?? this.rise,
+    horizontalScaling: horizontalScaling ?? this.horizontalScaling,
+    renderMode: renderMode ?? this.renderMode,
+    kerning: kerning ?? this.kerning,
+    ligatures: ligatures ?? this.ligatures,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is PdfTextStyle &&
+      other.font == font &&
+      other.size == size &&
+      other.characterSpacing == characterSpacing &&
+      other.wordSpacing == wordSpacing &&
+      other.rise == rise &&
+      other.horizontalScaling == horizontalScaling &&
+      other.renderMode == renderMode &&
+      other.kerning == kerning &&
+      other.ligatures == ligatures;
+
+  @override
+  int get hashCode => Object.hash(
+    font,
+    size,
+    characterSpacing,
+    wordSpacing,
+    rise,
+    horizontalScaling,
+    renderMode,
+    kerning,
+    ligatures,
+  );
+
   /// The width of [glyphs] set in this style, in points.
   double widthOf(List<ShapedGlyph> glyphs) {
     var width = 0.0;

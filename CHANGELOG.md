@@ -37,3 +37,11 @@
   explicit destinations), named destinations, outlines with nesting and
   styles, page labels, page mode, language and viewer preferences. Each
   document declares the lowest PDF version it needs.
+- Layout, paragraphs: break opportunities by the Unicode Line Breaking
+  Algorithm (UAX #14, Unicode 18.0; the conformance test passes), styled
+  text runs and inline images as boxes, glue and penalties, line breaking
+  as a strategy (`LineBreaker`) with first fit and Knuth-Plass provided,
+  soft hyphens and a hyphenation hook, words wider than the line broken
+  anywhere, alignment (left, center, right, justified), first-line indent,
+  line heights (font, multiple, exact), underline and strikethrough from
+  the fonts' metrics, links and anchors reported where they are painted.

@@ -1,0 +1,102 @@
+/// Inline content of paragraphs: styled text runs and inline images.
+library;
+
+import 'package:libpdf/src/drawing/canvas.dart';
+import 'package:libpdf/src/drawing/color.dart';
+import 'package:libpdf/src/drawing/document.dart';
+import 'package:libpdf/src/images/images.dart';
+import 'package:meta/meta.dart';
+
+/// A piece of a paragraph's content.
+@immutable
+sealed class InlineContent {
+  const new _();
+}
+
+/// Text in one style.
+final class TextRun extends InlineContent {
+  /// [text] set in [style], painted in [color] (black by default), with
+  /// the decorations asked for, linking to [link].
+  const new(
+    this.text,
+    this.style, {
+    this.color,
+    this.underline = false,
+    this.strikethrough = false,
+    this.link,
+    this.anchor,
+  }) : super._();
+
+  /// The text.
+  final String text;
+
+  /// The font, size and text state.
+  final PdfTextStyle style;
+
+  /// The fill color, or null for the canvas's current color.
+  final PdfColor? color;
+
+  /// Whether the text is underlined.
+  final bool underline;
+
+  /// Whether the text is struck through.
+  final bool strikethrough;
+
+  /// Where the text links to.
+  final LinkTarget? link;
+
+  /// A name for the position of the text: layout reports where it ends
+  /// up (for destinations, a table of contents, an index).
+  final String? anchor;
+
+  /// A run of [text] with this run's formatting.
+  TextRun withText(String text) => TextRun(
+    text,
+    style,
+    color: color,
+    underline: underline,
+    strikethrough: strikethrough,
+    link: link,
+    anchor: anchor,
+  );
+}
+
+/// How an inline image sits on the line.
+enum InlineAlignment {
+  /// Its bottom on the baseline.
+  baseline,
+
+  /// Its middle on the middle of the line's text (half the x-height above
+  /// the baseline of the run before it).
+  middle,
+
+  /// Its top at the top of the line's text.
+  top,
+}
+
+/// An image in the text, of a given size.
+final class InlineImage extends InlineContent {
+  /// [image] drawn [width] by [height] points, aligned by [alignment].
+  const new(
+    this.image,
+    this.width,
+    this.height, {
+    this.alignment = InlineAlignment.baseline,
+    this.link,
+  }) : super._();
+
+  /// The image.
+  final PdfImage image;
+
+  /// Its width, in points.
+  final double width;
+
+  /// Its height, in points.
+  final double height;
+
+  /// Its vertical alignment.
+  final InlineAlignment alignment;
+
+  /// Where the image links to.
+  final LinkTarget? link;
+}

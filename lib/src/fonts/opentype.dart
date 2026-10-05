@@ -187,6 +187,13 @@ final class OpenTypeFont {
   /// Whether every glyph has the same width.
   bool isFixedPitch = false;
 
+  /// The top of the underline, in font units (negative: below the
+  /// baseline), from `post`.
+  int? underlinePosition;
+
+  /// The underline's thickness, in font units, from `post`.
+  int? underlineThickness;
+
   /// The PostScript name.
   String postScriptName = 'Font';
 
@@ -244,6 +251,8 @@ final class OpenTypeFont {
     final t = _tables['post'];
     if (t == null) return;
     italicAngle = _data.fixed(t.offset + 4);
+    underlinePosition = _data.i16(t.offset + 8);
+    underlineThickness = _data.i16(t.offset + 10);
     isFixedPitch = _data.u32(t.offset + 12) != 0;
   }
 
