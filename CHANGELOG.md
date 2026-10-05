@@ -91,8 +91,8 @@
   `StandardFont.boundingBox`.
 - `BoxStyle.decoration`: a callback painting over each piece of a block,
   told whether the piece is where the block starts and ends.
-- `BreakBox.page(force: true)`: a page break made even at the top of a
-  region.
+- `BreakBox.page(force: true)` and `BreakBox.column(force: true)`: a
+  break made even at the top of a region.
 - `ColumnWidth.computed`: a table column whose width is computed from the
   table's width.
 - `SvgImage.rootAttribute`: the root element's attributes as written.

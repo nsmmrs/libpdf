@@ -316,11 +316,11 @@ final class BreakBox extends LayoutBox {
     : kind = BreakKind.page,
       super._(const BoxStyle());
 
-  /// A break to the next column (ignored at the top of a region).
-  const new column()
+  /// A break to the next column, ignored at the top of a region unless
+  /// [force]d.
+  const new column({this.force = false})
     : kind = BreakKind.column,
       template = null,
-      force = false,
       super._(const BoxStyle());
 
   /// The kind of break.

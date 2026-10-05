@@ -329,6 +329,19 @@ void main() {
         ColumnsBox([const BreakBox.column(), para(lines(4, 'c'))]),
       ], rowsTemplate(3));
       expect(pageTexts(set, 1).single, ['intro', 'c1 c3', 'c2 c4']);
+      // A forced one leaves the first column blank.
+      final (_, forced) = render([
+        para('intro'),
+        ColumnsBox([
+          const BreakBox.column(force: true),
+          ParagraphBox(
+            Paragraph([TextRun('c1', body)]),
+            style: const BoxStyle(anchor: 'c1'),
+          ),
+        ]),
+      ], rowsTemplate(3));
+      // The second column starts at 20 + (260 - 12) / 2 + 12.
+      expect(forced.anchors['c1']!.x, closeTo(156, 0.01));
       // No room for a line: the set starts on the next page.
       final (late, result) = render([
         para(lines(3)),

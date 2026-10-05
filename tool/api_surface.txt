@@ -218,7 +218,7 @@ final class BoxStyle
   bool keepWithNext
   void Function(PdfPage, PdfRect, {required bool first, required bool last})? decoration
 final class BreakBox extends LayoutBox
-  BreakBox.column()
+  BreakBox.column({bool force = false})
   BreakBox.page({String? template, bool force = false})
   BreakKind kind
   String? template
