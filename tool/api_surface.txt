@@ -281,7 +281,7 @@ final class EdgeInsets
   int hashCode
   static EdgeInsets zero
 final class EmbeddedFont extends PdfFont
-  EmbeddedFont.parse(List<int> bytes, {int index = 0, bool subset = true})
+  EmbeddedFont.parse(List<int> bytes, {int index = 0, bool subset = true, bool truncateWidths = false})
   List<ShapedGlyph> shape(String text, {bool kerning = true, bool ligatures = false})
   List<int> encode(List<ShapedGlyph> glyphs)
   OpenTypeFont font
@@ -289,6 +289,7 @@ final class EmbeddedFont extends PdfFont
   bool covers(int codePoint)
   bool missedGlyphs
   bool subset
+  bool truncateWidths
   double ascender
   double capHeight
   double descender

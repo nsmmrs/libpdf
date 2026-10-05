@@ -269,18 +269,33 @@ final class _StandardGlyphs {
 /// glyphs used (TrueType outlines) and written as a Type0 font with
 /// Identity-H encoding and a ToUnicode map, so text extracts and searches.
 final class EmbeddedFont extends PdfFont {
-  new _(this.font, {required this.subset}) : super._();
+  new _(this.font, {required this.subset, required this.truncateWidths})
+    : super._();
 
   /// The font in [bytes] (the font at [index] of a collection); with
-  /// [subset] (the default), only the glyphs used are embedded.
-  factory parse(List<int> bytes, {int index = 0, bool subset = true}) =>
-      EmbeddedFont._(OpenTypeFont.parse(bytes, index: index), subset: subset);
+  /// [subset] (the default), only the glyphs used are embedded. The
+  /// glyph widths written are rounded to whole 1000ths of the em, or
+  /// truncated with [truncateWidths] (as some engines do; text then lines
+  /// up with theirs).
+  factory parse(
+    List<int> bytes, {
+    int index = 0,
+    bool subset = true,
+    bool truncateWidths = false,
+  }) => EmbeddedFont._(
+    OpenTypeFont.parse(bytes, index: index),
+    subset: subset,
+    truncateWidths: truncateWidths,
+  );
 
   /// The font program.
   final OpenTypeFont font;
 
   /// Whether only the glyphs used are embedded.
   final bool subset;
+
+  /// Whether the widths written are truncated rather than rounded.
+  final bool truncateWidths;
 
   /// The glyphs used so far, with the text each stands for.
   final Map<int, String> _used = {};
@@ -480,7 +495,8 @@ final class EmbeddedFont extends PdfFont {
       final start = ids[i];
       final run = <PdfObject>[];
       while (i < ids.length && ids[i] == start + run.length) {
-        run.add(PdfInt(_scale(font.advance(ids[i])).round()));
+        final width = _scale(font.advance(ids[i]));
+        run.add(PdfInt(truncateWidths ? width.truncate() : width.round()));
         i += 1;
       }
       items

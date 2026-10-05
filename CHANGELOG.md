@@ -84,3 +84,7 @@
 - `CustomBox`: content that lays itself out (`CustomContent`), placed and
   split by the layout like any box, for callers reproducing another
   engine's text boxes.
+- Fonts: `EmbeddedFont.parse(truncateWidths:)` writes glyph widths
+  truncated rather than rounded (text then lines up with engines that
+  truncate); OS/2 typographic metrics; `kern` table pairs;
+  `StandardFont.boundingBox`.
