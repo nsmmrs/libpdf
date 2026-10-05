@@ -109,3 +109,10 @@
   function of the room and the content's height, `TableCell.decoration`
   paints a cell's border in place of `border`, and `TableBox.stripes`
   gives body rows backgrounds in turn, starting over in each region.
+- Reading: `PdfFile.parse` reads a PDF file's objects (cross-reference
+  tables and streams, incremental updates, object streams; rebuilt by
+  scanning the file when the cross-references are broken; Flate, LZW,
+  ASCIIHex, ASCII85 and RunLength filters with PNG predictors) and its
+  pages; an `ImportedPage` paints into another document as a form XObject
+  of the page's content, with its resources copied once (`PdfCanvas.page`),
+  turned as the page is displayed. Encrypted files are rejected.

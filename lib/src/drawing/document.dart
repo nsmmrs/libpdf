@@ -13,6 +13,7 @@ import 'package:libpdf/src/drawing/shading.dart';
 import 'package:libpdf/src/fonts/fonts.dart';
 import 'package:libpdf/src/images/images.dart';
 import 'package:libpdf/src/objects.dart';
+import 'package:libpdf/src/reader/reader.dart';
 import 'package:libpdf/src/writer.dart';
 import 'package:meta/meta.dart';
 
@@ -446,6 +447,8 @@ final class _Saver {
   final Set<PdfImage> _images = {};
   final Map<(String, CmykColor), PdfArray> _separations = {};
   final Map<PdfShading, PdfRef> _shadings = Map.identity();
+  final Map<ImportedPage, PdfRef> _importedPages = Map.identity();
+  late final ObjectCopier _copier = ObjectCopier(writer);
 
   void save() {
     final catalog = writer.reserve();
@@ -461,6 +464,7 @@ final class _Saver {
       final form = _formQueue.removeAt(0);
       _writeForm(form);
     }
+    _copier.flush();
     for (final font in _fonts) {
       font.writeTo(writer);
     }
@@ -583,6 +587,22 @@ final class _Saver {
         return image.reference(writer);
       case FormResource(:final form):
         return _formRef(form);
+      case ImportedPageResource(:final page):
+        return _importedPages[page] ??= writer.write(
+          PdfStream(
+            page.content,
+            dict: PdfDict({
+              'Type': const PdfName('XObject'),
+              'Subtype': const PdfName('Form'),
+              'BBox': page.box.toArray(),
+              'Resources': page.resources == null
+                  ? PdfDict()
+                  : _copier.copy(page.file, page.resources),
+              if (page.group case final group?)
+                'Group': _copier.copy(page.file, group),
+            }),
+          ),
+        );
       case ShadingResource(:final shading):
         return _shadings[shading] ??= writer.write(shadingDict(shading));
       case SeparationResource(:final name, :final alternate):

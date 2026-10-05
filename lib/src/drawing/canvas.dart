@@ -15,6 +15,7 @@ import 'package:libpdf/src/drawing/shading.dart';
 import 'package:libpdf/src/fonts/fonts.dart';
 import 'package:libpdf/src/images/images.dart';
 import 'package:libpdf/src/objects.dart';
+import 'package:libpdf/src/reader/reader.dart';
 import 'package:meta/meta.dart';
 
 /// The shape at the ends of stroked open lines.
@@ -340,6 +341,16 @@ final class FormResource extends Resource {
 
   /// The form.
   final PdfForm form;
+}
+
+/// A page of another file.
+@internal
+final class ImportedPageResource extends Resource {
+  /// The resource of [page].
+  const new(this.page);
+
+  /// The page.
+  final ImportedPage page;
 }
 
 /// A spot color's Separation color space.
@@ -702,6 +713,18 @@ final class PdfCanvas {
     final name = _use('XObject', image, ImageResource(image), 'Im');
     _op('q');
     _op('cm', [rect.width, 0, 0, rect.height, rect.left, rect.bottom]);
+    _named('Do', name);
+    _op('Q');
+  }
+
+  /// Paints [page], a page of another file, into [rect].
+  void page(ImportedPage page, PdfRect rect) {
+    _noPath('page()');
+    if (page.group != null) _usesTransparency = true;
+    final name = _use('XObject', page, ImportedPageResource(page), 'Pg');
+    final m = page.placement(rect);
+    _op('q');
+    _op('cm', [m.a, m.b, m.c, m.d, m.e, m.f]);
     _named('Do', name);
     _op('Q');
   }

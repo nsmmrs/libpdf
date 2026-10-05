@@ -371,6 +371,17 @@ final class ImageFragment extends LineFragment
   ImageFragment(double x, double width, InlineImage image, double bottom)
   InlineImage image
   double bottom
+final class ImportedPage implements Graphic
+  PdfFile file
+  PdfMatrix placement(PdfRect rect)
+  PdfObject? group
+  PdfObject? resources
+  PdfRect box
+  Uint8List content
+  double intrinsicHeight
+  double intrinsicWidth
+  int rotation
+  void paint(PdfCanvas canvas, PdfRect rect)
 final class InlineDecoration
   InlineDecoration({PdfColor? background, PdfColor? borderColor, double borderWidth = 0, double radius = 0, double padding = 0})
   PdfColor? background
@@ -549,6 +560,7 @@ final class PdfCanvas
   void lineTo(double x, double y)
   void moveTo(double x, double y)
   void opacity({double? fill, double? stroke})
+  void page(ImportedPage page, PdfRect rect)
   void rect(PdfRect rect)
   void restore()
   void rotate(double degrees)
@@ -588,11 +600,22 @@ final class PdfDocument
   void addDestination(String name, PdfDestination destination)
   void labelPages(int pageIndex, PageLabel label)
   void saveTo(void Function(List<int>) sink, {PdfWriterOptions options = const PdfWriterOptions()})
+final class PdfFile
+  List<ImportedPage> pages
+  PdfDict trailer
+  PdfFile.parse(Uint8List bytes)
+  PdfObject object(int number)
+  PdfObject? resolve(PdfObject? object)
+  Uint8List decode(PdfStream stream)
 final class PdfForm
   PdfForm(PdfRect bbox, void Function(PdfCanvas) draw, {TransparencyGroup? group, PdfMatrix? matrix})
   PdfMatrix? matrix
   PdfRect bbox
   TransparencyGroup? group
+final class PdfFormatException implements Exception
+  PdfFormatException(String message)
+  String message
+  String toString()
 final class PdfInfo
   PdfInfo({String? title, String? author, String? subject, String? keywords, String? creator, String? producer})
   String? author
