@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="160">
+  <style>
+    /* comment */
+    rect { fill: gray; }
+    .warm { fill: #f60; stroke: black; stroke-width: 2px; }
+    #special { fill: cyan; }
+    g.box > rect { fill: lime; }
+    @media print { rect { fill: black; } }
+  </style>
+  <rect x="10" y="10" width="40" height="40"/>
+  <rect x="60" y="10" width="40" height="40" class="warm"/>
+  <rect x="110" y="10" width="40" height="40" class="warm" id="special"/>
+  <g class="box"><rect x="10" y="60" width="40" height="40"/></g>
+  <rect x="60" y="60" width="40" height="40" fill="red" style="fill: purple"/>
+  <rect x="110" y="60" width="40" height="40" fill="blue"/>
+</svg>

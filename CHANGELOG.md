@@ -64,3 +64,15 @@
   pages a second on a laptop).
 - Font fallback chains: a text run's characters its font lacks are set in
   the first of its fallback fonts that has them.
+- SVG: `SvgImage` draws SVG as PDF vector graphics: the path grammar
+  (arcs included), basic shapes, transforms, nested viewports with
+  viewBox and preserveAspectRatio, `use` and `symbol`, fill and stroke
+  styles, linear and radial gradients (shadings; stop opacity as a soft
+  mask), clip paths, group opacity (transparency groups), a CSS subset
+  (style sheets with type, class, id and descendant selectors; style
+  attributes), text in PDF fonts with anchors and baselines, raster and
+  SVG images from data URIs or a resolver. Masks, filters, markers,
+  patterns and per-character text positions are reported as warnings.
+  Checked against librsvg's renderings. Shadings (`AxialShading`,
+  `RadialShading`, `PdfCanvas.shade`) join the drawing API; `Graphic`
+  lets the layout place raster and SVG images alike.

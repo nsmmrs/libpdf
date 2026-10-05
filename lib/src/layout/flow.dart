@@ -12,7 +12,7 @@ import 'package:libpdf/src/drawing/canvas.dart';
 import 'package:libpdf/src/drawing/color.dart';
 import 'package:libpdf/src/drawing/document.dart';
 import 'package:libpdf/src/drawing/geometry.dart';
-import 'package:libpdf/src/images/images.dart';
+import 'package:libpdf/src/drawing/graphic.dart';
 import 'package:libpdf/src/layout/inline.dart';
 import 'package:libpdf/src/layout/paragraph.dart';
 import 'package:meta/meta.dart';
@@ -220,7 +220,8 @@ final class ParagraphBox extends LayoutBox {
 
 /// An image of a given size.
 final class ImageBox extends LayoutBox {
-  /// [image] at [width] by [height], aligned by [align]; [shrinkToFit]
+  /// [image] (raster or SVG) at [width] by [height], aligned by [align];
+  /// [shrinkToFit]
   /// scales it down when it is taller than a whole region.
   const new(
     this.image,
@@ -232,7 +233,7 @@ final class ImageBox extends LayoutBox {
   }) : super._(style);
 
   /// The image.
-  final PdfImage image;
+  final Graphic image;
 
   /// The width.
   final double width;
@@ -1841,7 +1842,7 @@ final class _PlacedImage extends _Placed {
     this.anchor,
   );
 
-  final PdfImage image;
+  final Graphic image;
   final double left;
   final double top;
   final double width;
@@ -1862,8 +1863,8 @@ final class _PlacedImage extends _Placed {
 
   @override
   void paint(_Painter painter, double x, double top) {
-    painter.canvas.image(
-      image,
+    image.paint(
+      painter.canvas,
       PdfRect(x + left, top - this.top - imageHeight, width, imageHeight),
     );
   }

@@ -11,6 +11,7 @@ import 'dart:typed_data';
 
 import 'package:libpdf/src/drawing/color.dart';
 import 'package:libpdf/src/drawing/geometry.dart';
+import 'package:libpdf/src/drawing/shading.dart';
 import 'package:libpdf/src/fonts/fonts.dart';
 import 'package:libpdf/src/images/images.dart';
 import 'package:libpdf/src/objects.dart';
@@ -327,6 +328,16 @@ final class SeparationResource extends Resource {
 
   /// Its CMYK alternate.
   final CmykColor alternate;
+}
+
+/// A shading.
+@internal
+final class ShadingResource extends Resource {
+  /// The resource of [shading].
+  const new(this.shading);
+
+  /// The shading.
+  final PdfShading shading;
 }
 
 /// Graphics state parameters (an ExtGState dictionary).
@@ -665,6 +676,13 @@ final class PdfCanvas {
 
   /// Ends the path without painting it (`n`).
   void endPath() => _paint('n');
+
+  /// Paints [shading] over the clipping region (`sh`): clip to a path
+  /// first to fill it with a gradient.
+  void shade(PdfShading shading) {
+    _noPath('shade()');
+    _named('sh', _use('Shading', shading, ShadingResource(shading), 'Sh'));
+  }
 
   // Images and forms.
 

@@ -799,8 +799,8 @@ final class Line {
             anchor(name, left, y + font.ascender * size / 1000);
           }
         case ImageFragment(:final image, :final bottom):
-          canvas.image(
-            image.image,
+          image.image.paint(
+            canvas,
             PdfRect(left, y + bottom, image.width, image.height),
           );
           if (image.link case final target? when link != null) {

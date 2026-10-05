@@ -1,6 +1,6 @@
 // Compiles the library to JavaScript in CI and writes a deterministic PDF
 // (text, shapes, transparency, PNG images decoded and compressed again,
-// a link, an outline and page labels):
+// an SVG, a link, an outline and page labels):
 // nothing in the library may depend on dart:io, and the output must be
 // the same bytes on the VM and on JavaScript (the CI job compares the
 // digest it prints with the VM's).
@@ -30,6 +30,7 @@ void main() {
       PdfRect(72 + 48.0 * i, 600, 32, 32),
     );
   }
+  SvgImage.parse(_svg).draw(page.canvas, const PdfRect(300, 600, 150, 120));
   page.link(
     const PdfRect(72, 715, 100, 15),
     const LinkTarget.uri('https://example.org/'),
@@ -158,3 +159,15 @@ const String _paletteAlpha =
     'xRUYCgsquUZx6XPNPPYcLUlmzTO/nFRgLCa81PVj41MDoxcM6CCg4+jlQkMJsRVu3sUl7zox'
     '5IGgfFvIotkSaw55FWmFYpNnYLjeNX/ebFOPw10nscsDwXv5eTaHmHBKA8GL6WYV+OQZGBIe'
     '4JfHBAANrv+RnZXbwAAAAABJRU5ErkJggg==';
+
+/// An SVG with paths, a gradient, a clip path and text.
+const String _svg = '''
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="160">
+  <defs>
+    <linearGradient id="g"><stop offset="0" stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient>
+    <clipPath id="c"><circle cx="100" cy="80" r="60"/></clipPath>
+  </defs>
+  <rect width="200" height="160" fill="url(#g)" clip-path="url(#c)"/>
+  <path d="M10 150 A 40 40 0 0 1 90 150 Z" fill="gold" stroke="black"/>
+  <text x="100" y="30" text-anchor="middle" font-family="sans-serif">web</text>
+</svg>''';

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="160">
+  <defs>
+    <rect id="r" width="30" height="20"/>
+    <symbol id="s" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="indigo"/></symbol>
+  </defs>
+  <use href="#r" x="10" y="10" fill="red"/>
+  <use xlink:href="#r" x="50" y="10" fill="blue"/>
+  <use href="#r" x="90" y="10" fill="green" transform="rotate(10)"/>
+  <use href="#s" x="10" y="50" width="60" height="60"/>
+  <use href="#s" x="100" y="60" width="40" height="80"/>
+</svg>

@@ -4,8 +4,8 @@ library;
 import 'package:libpdf/src/drawing/canvas.dart';
 import 'package:libpdf/src/drawing/color.dart';
 import 'package:libpdf/src/drawing/document.dart';
+import 'package:libpdf/src/drawing/graphic.dart';
 import 'package:libpdf/src/fonts/fonts.dart';
-import 'package:libpdf/src/images/images.dart';
 import 'package:meta/meta.dart';
 
 /// A piece of a paragraph's content.
@@ -129,7 +129,8 @@ enum InlineAlignment {
 
 /// An image in the text, of a given size.
 final class InlineImage extends InlineContent {
-  /// [image] drawn [width] by [height] points, aligned by [alignment].
+  /// [image] (raster or SVG) drawn [width] by [height] points, aligned
+  /// by [alignment].
   const new(
     this.image,
     this.width,
@@ -139,7 +140,7 @@ final class InlineImage extends InlineContent {
   }) : super._();
 
   /// The image.
-  final PdfImage image;
+  final Graphic image;
 
   /// Its width, in points.
   final double width;

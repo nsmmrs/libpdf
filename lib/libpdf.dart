@@ -37,6 +37,9 @@ export 'src/drawing/document.dart'
         UriTarget,
         XyzDestination;
 export 'src/drawing/geometry.dart' show PdfMatrix, PdfRect;
+export 'src/drawing/graphic.dart' show Graphic;
+export 'src/drawing/shading.dart'
+    show AxialShading, GradientStop, PdfShading, RadialShading;
 export 'src/flate.dart' show adler32, deflate, inflate, zlibDecode, zlibEncode;
 export 'src/fonts/fonts.dart'
     show EmbeddedFont, PdfFont, ShapedGlyph, StandardFont;
@@ -124,6 +127,15 @@ export 'src/objects.dart'
         PdfString,
         formatNumber,
         pdfDocEncode;
+export 'src/svg/path.dart'
+    show
+        CloseSegment,
+        CubicSegment,
+        LineSegment,
+        MoveSegment,
+        PathSegment,
+        SvgPath;
+export 'src/svg/svg.dart' show SvgFontResolver, SvgImage, SvgImageResolver;
 export 'src/writer.dart' show PdfInfo, PdfWriter, PdfWriterOptions, pdfDate;
 
 /// The version of libpdf.

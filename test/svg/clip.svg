@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="160">
+  <defs>
+    <clipPath id="circle"><circle cx="50" cy="50" r="40"/></clipPath>
+    <clipPath id="box" clipPathUnits="objectBoundingBox"><rect x="0.25" y="0.25" width="0.5" height="0.5"/></clipPath>
+    <clipPath id="ring"><path d="M140 20 h50 v50 h-50 z M150 30 v30 h30 v-30 z" clip-rule="evenodd"/></clipPath>
+  </defs>
+  <g clip-path="url(#circle)">
+    <rect x="0" y="0" width="100" height="100" fill="navy"/>
+    <rect x="50" y="0" width="50" height="100" fill="orange"/>
+  </g>
+  <rect x="10" y="100" width="120" height="50" fill="green" clip-path="url(#box)"/>
+  <rect x="130" y="10" width="70" height="70" fill="crimson" clip-path="url(#ring)"/>
+</svg>

@@ -9,6 +9,7 @@ import 'dart:typed_data';
 import 'package:libpdf/src/drawing/canvas.dart';
 import 'package:libpdf/src/drawing/color.dart';
 import 'package:libpdf/src/drawing/geometry.dart';
+import 'package:libpdf/src/drawing/shading.dart';
 import 'package:libpdf/src/fonts/fonts.dart';
 import 'package:libpdf/src/images/images.dart';
 import 'package:libpdf/src/objects.dart';
@@ -444,6 +445,7 @@ final class _Saver {
   final Set<PdfFont> _fonts = {};
   final Set<PdfImage> _images = {};
   final Map<(String, CmykColor), PdfArray> _separations = {};
+  final Map<PdfShading, PdfRef> _shadings = Map.identity();
 
   void save() {
     final catalog = writer.reserve();
@@ -580,6 +582,8 @@ final class _Saver {
         return image.reference(writer);
       case FormResource(:final form):
         return _formRef(form);
+      case ShadingResource(:final shading):
+        return _shadings[shading] ??= writer.write(shading.toDict());
       case SeparationResource(:final name, :final alternate):
         return _separations[(name, alternate)] ??= PdfArray([
           const PdfName('Separation'),

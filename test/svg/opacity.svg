@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="160">
+  <g opacity="0.5">
+    <rect x="10" y="10" width="80" height="80" fill="red"/>
+    <rect x="50" y="50" width="80" height="80" fill="blue"/>
+  </g>
+  <circle cx="160" cy="50" r="30" fill="green" fill-opacity="0.3"/>
+  <circle cx="160" cy="110" r="30" fill="black" opacity="0.6"/>
+  <rect x="140" y="140" width="50" height="15" fill="rgba(255,0,0,0.5)"/>
+</svg>

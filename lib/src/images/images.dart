@@ -7,6 +7,9 @@ library;
 
 import 'dart:typed_data';
 
+import 'package:libpdf/src/drawing/canvas.dart';
+import 'package:libpdf/src/drawing/geometry.dart';
+import 'package:libpdf/src/drawing/graphic.dart';
 import 'package:libpdf/src/flate.dart';
 import 'package:libpdf/src/images/exif.dart';
 import 'package:libpdf/src/images/png_decode.dart';
@@ -26,7 +29,7 @@ final class ImageFormatException implements Exception {
 }
 
 /// A raster image, drawn as an image XObject.
-sealed class PdfImage {
+sealed class PdfImage implements Graphic {
   new _();
 
   /// The JPEG or PNG image in [bytes], told apart by their signatures.
@@ -47,6 +50,16 @@ sealed class PdfImage {
   /// The EXIF orientation (1–8; 1 is upright). It is reported, not
   /// applied: placing the image is up to the caller.
   int get orientation;
+
+  /// A pixel to a point.
+  @override
+  double get intrinsicWidth => width.toDouble();
+
+  @override
+  double get intrinsicHeight => height.toDouble();
+
+  @override
+  void paint(PdfCanvas canvas, PdfRect rect) => canvas.image(this, rect);
 
   /// The reference the image is written under, reserved from [writer].
   PdfRef reference(PdfWriter writer) =>
