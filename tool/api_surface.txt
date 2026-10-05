@@ -239,6 +239,9 @@ final class ColumnsBox extends LayoutBox
   List<LayoutBox> children
   double gap
   int count
+final class ComputedColumnWidth extends ColumnWidth
+  ComputedColumnWidth(double Function(double) width)
+  double Function(double) width
 final class CubicSegment extends PathSegment
   CubicSegment(double x1, double y1, double x2, double y2, double x, double y)
   double x

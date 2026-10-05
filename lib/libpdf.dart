@@ -58,6 +58,7 @@ export 'src/layout/flow.dart'
         BreakBox,
         BreakKind,
         ColumnWidth,
+        ComputedColumnWidth,
         ColumnsBox,
         CustomBox,
         CustomContent,
