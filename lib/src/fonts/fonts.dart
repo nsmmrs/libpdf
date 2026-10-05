@@ -449,8 +449,14 @@ final class EmbeddedFont extends PdfFont {
           for (final v in font.bbox) _scale(v).round(),
         ]),
         'ItalicAngle': PdfReal(font.italicAngle),
-        'Ascent': PdfInt(ascender.round()),
-        'Descent': PdfInt(descender.round()),
+        // The typographic metrics when the font sets them (as readers and
+        // other engines take them), else the horizontal header's.
+        'Ascent': PdfInt(
+          _scale(_typo(font.typoAscender, font.ascender)).round(),
+        ),
+        'Descent': PdfInt(
+          _scale(_typo(font.typoDescender, font.descender)).round(),
+        ),
         'CapHeight': PdfInt(capHeight.round()),
         'StemV': PdfInt(font.weightClass >= 600 ? 120 : 80),
         if (trueType) 'FontFile2': fontFile else 'FontFile3': fontFile,
@@ -485,6 +491,9 @@ final class EmbeddedFont extends PdfFont {
       reference(writer),
     );
   }
+
+  static int _typo(int? typo, int hhea) =>
+      typo != null && typo != 0 ? typo : hhea;
 
   /// The widths of the glyphs used (`/W`): runs of consecutive glyph ids.
   PdfArray _widths() {
