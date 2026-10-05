@@ -892,6 +892,12 @@ final class _Pass {
       pages.add(page);
       if (++guard > 100000) throw StateError('layout does not progress');
     }
+    // A last page with nothing on it (after a trailing page break) is left
+    // out.
+    if (pages.length > 1 &&
+        pages.last.placed.every((p) => (p.$2?.height ?? 0) == 0)) {
+      pages.removeLast();
+    }
     for (final (i, page) in pages.indexed) {
       for (final (region, placed) in page.placed) {
         placed?.visit(region.left, region.top, (anchor, x, y) {

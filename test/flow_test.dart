@@ -209,6 +209,12 @@ void main() {
     ]);
   });
 
+  test('a trailing page break makes no empty page', () {
+    final result = FlowLayout(template: rowsTemplate(4))
+        .layout([para('one'), const BreakBox.page()]);
+    expect(result.pageCount, 1);
+  });
+
   test('decorations see each piece of a block', () {
     final pieces = <(double, bool, bool)>[];
     FlowLayout(template: rowsTemplate(4))

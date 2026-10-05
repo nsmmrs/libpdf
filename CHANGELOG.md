@@ -100,7 +100,8 @@
   effect for the pages after it, and a break to a template at the top of
   an empty page replaces it; `PageInfo.template` names a page's template.
   The top of each column of a `ColumnsBox` is a region top (breaks and
-  top margins there count for nothing).
+  top margins there count for nothing). A last page with nothing on it
+  (after a trailing page break) is left out.
 - `kernTablePair(subtable:)` and `EmbeddedFont.parse(kernTableSubtable:)`:
   kerning from one subtable of the `kern` table alone (Prawn kerns with
   the first).
