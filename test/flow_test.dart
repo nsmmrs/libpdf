@@ -294,6 +294,23 @@ void main() {
     expect(rects.single.left, rowsTemplate(4).regions.first.left + 5);
   });
 
+  test('a template paints its foreground over the content', () {
+    final order = <String>[];
+    FlowLayout(
+      template: PageTemplate(
+        const PdfRect(0, 0, 100, 100),
+        margins: const EdgeInsets.all(10),
+        background: (canvas, page) => order.add('background'),
+        foreground: (canvas, page) => order.add('foreground'),
+        footer: (page) {
+          order.add('footer');
+          return const [];
+        },
+      ),
+    ).layout([para('a')]).render(PdfDocument());
+    expect(order, ['background', 'footer', 'foreground']);
+  });
+
   test('a trailing page break makes no empty page', () {
     final result = FlowLayout(template: rowsTemplate(4))
         .layout([para('one'), const BreakBox.page()]);

@@ -318,6 +318,9 @@ final class FirstFitLineBreaker extends ItemLineBreaker
   List<int> breakItems(List<LineItem> items, double Function(int) widths)
 final class FitDestination extends PdfDestination
   FitDestination(PdfPage page)
+final class FitHeightDestination extends PdfDestination
+  FitHeightDestination(PdfPage page, {double? left})
+  double? left
 final class FitWidthDestination extends PdfDestination
   FitWidthDestination(PdfPage page, {double? top})
   double? top
@@ -519,11 +522,12 @@ final class PageTemplate
   List<LayoutBox> Function(PageInfo)? footer
   List<LayoutBox> Function(PageInfo)? header
   List<PdfRect> regions
-  PageTemplate(PdfRect size, {EdgeInsets margins = const EdgeInsets.all(72), int columns = 1, double columnGap = 12, List<LayoutBox> Function(PageInfo)? header, List<LayoutBox> Function(PageInfo)? footer, void Function(PdfCanvas, PageInfo)? background})
+  PageTemplate(PdfRect size, {EdgeInsets margins = const EdgeInsets.all(72), int columns = 1, double columnGap = 12, List<LayoutBox> Function(PageInfo)? header, List<LayoutBox> Function(PageInfo)? footer, void Function(PdfCanvas, PageInfo)? background, void Function(PdfCanvas, PageInfo)? foreground})
   PdfRect size
   double columnGap
   int columns
   void Function(PdfCanvas, PageInfo)? background
+  void Function(PdfCanvas, PageInfo)? foreground
 final class Paragraph
   Hyphenator? hyphenator
   LineHeight lineHeight
@@ -596,8 +600,10 @@ final class PdfDict extends PdfObject
 final class PdfDocument
   List<PdfOutlineItem> outline
   List<PdfPage> pages
+  PageMode? nonFullScreenPageMode
   PageMode? pageMode
-  PdfDocument({PdfInfo info = const PdfInfo(), String? language, PageMode? pageMode, bool displayTitle = false})
+  PdfDestination? openAction (settable)
+  PdfDocument({PdfInfo info = const PdfInfo(), String? language, PageMode? pageMode, PageMode? nonFullScreenPageMode, bool displayTitle = false})
   PdfInfo info
   PdfOutlineItem addOutline(String title, LinkTarget? target, {bool open = false, bool bold = false, bool italic = false, RgbColor? color})
   PdfPage addPage(PdfRect mediaBox, {PdfRect? cropBox, PdfRect? bleedBox, PdfRect? trimBox, PdfRect? artBox, int rotation = 0})
@@ -939,6 +945,7 @@ sealed class PdfColor
   PdfColor.rgb(double red, double green, double blue)
 sealed class PdfDestination
   PdfDestination.fit(PdfPage page)
+  PdfDestination.fitHeight(PdfPage page, {double? left})
   PdfDestination.fitWidth(PdfPage page, {double? top})
   PdfDestination.xyz(PdfPage page, {double? left, double? top, double? zoom})
   PdfPage page

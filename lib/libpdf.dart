@@ -24,6 +24,7 @@ export 'src/drawing/document.dart'
     show
         DestinationTarget,
         FitDestination,
+        FitHeightDestination,
         FitWidthDestination,
         LinkTarget,
         NamedTarget,

@@ -477,6 +477,25 @@ void main() {
     }
   });
 
+  test('the open action and the page modes', () {
+    final document = PdfDocument(
+      pageMode: PageMode.fullScreen,
+      nonFullScreenPageMode: PageMode.useOutlines,
+    );
+    final page = document.addPage(const PdfRect(0, 0, 200, 200));
+    document.openAction = PdfDestination.fitHeight(page, left: 0);
+    final pdf = saved(document);
+    final qdf = run('qpdf', [
+      '--qdf',
+      '--object-streams=disable',
+      pdf.path,
+      '-',
+    ]);
+    expect(qdf, contains('/PageMode /FullScreen'));
+    expect(qdf, contains('/NonFullScreenPageMode /UseOutlines'));
+    expect(qdf, matches(RegExp(r'/OpenAction \[\s*\d+ 0 R\s*/FitV\s*0\s*\]')));
+  });
+
   test('links, named destinations and outlines', () {
     final document = PdfDocument(
       info: const PdfInfo(title: 'Links'),

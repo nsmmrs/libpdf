@@ -123,3 +123,7 @@
   `FlowLayout(templateForPage:)` gives each page its template by number,
   for margins that differ between recto and verso pages.
 - A custom box paints its style's decoration under its content.
+- `PageTemplate.foreground` paints over a page's content, header and
+  footer. `PdfDocument.openAction` (where the document opens),
+  `PdfDocument(nonFullScreenPageMode:)` and `PdfDestination.fitHeight`
+  (`FitV`).

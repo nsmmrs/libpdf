@@ -77,6 +77,9 @@ sealed class PdfDestination {
   /// [page] as wide as the window, with [top] at its top.
   const factory fitWidth(PdfPage page, {double? top}) = FitWidthDestination;
 
+  /// [page] as tall as the window, with [left] at its left.
+  const factory fitHeight(PdfPage page, {double? left}) = FitHeightDestination;
+
   /// The page.
   final PdfPage page;
 
@@ -129,6 +132,19 @@ final class FitWidthDestination extends PdfDestination {
   @override
   PdfArray _toArray(PdfRef pageRef) =>
       PdfArray([pageRef, const PdfName('FitH'), _number(top)]);
+}
+
+/// A page as tall as the window.
+final class FitHeightDestination extends PdfDestination {
+  /// [page] as tall as the window, [left] at the left.
+  const new(super.page, {this.left}) : super._();
+
+  /// The left edge of the window, or null to keep it.
+  final double? left;
+
+  @override
+  PdfArray _toArray(PdfRef pageRef) =>
+      PdfArray([pageRef, const PdfName('FitV'), _number(left)]);
 }
 
 PdfObject _number(double? value) => switch (value) {
@@ -309,12 +325,14 @@ enum PageMode {
 /// A PDF document.
 final class PdfDocument {
   /// An empty document with [info]; [language] is its natural language
-  /// (`en-US`), [pageMode] how it opens, [displayTitle] whether viewers
+  /// (`en-US`), [pageMode] how it opens (and [nonFullScreenPageMode] how
+  /// it shows when it leaves full screen), [displayTitle] whether viewers
   /// show the title rather than the file name.
   new({
     this.info = const PdfInfo(),
     this.language,
     this.pageMode,
+    this.nonFullScreenPageMode,
     this.displayTitle = false,
   });
 
@@ -326,6 +344,13 @@ final class PdfDocument {
 
   /// How the document opens.
   final PageMode? pageMode;
+
+  /// How the document shows when it leaves full screen ([PageMode.useNone],
+  /// [PageMode.useOutlines] or [PageMode.useThumbs]).
+  final PageMode? nonFullScreenPageMode;
+
+  /// Where the document opens (a destination on one of its pages).
+  PdfDestination? openAction;
 
   /// Whether viewers show the title in the window's title bar.
   final bool displayTitle;
@@ -496,9 +521,13 @@ final class _Saver {
             'PageMode': PdfName(mode.pdfName),
           if (document.language case final language?)
             'Lang': PdfString.text(language),
-          if (document.displayTitle)
+          if (document.openAction case final destination?)
+            'OpenAction': destination._toArray(_pageRef(destination.page)),
+          if (document.displayTitle || document.nonFullScreenPageMode != null)
             'ViewerPreferences': PdfDict({
-              'DisplayDocTitle': const PdfBool(true),
+              if (document.displayTitle) 'DisplayDocTitle': const PdfBool(true),
+              if (document.nonFullScreenPageMode case final mode?)
+                'NonFullScreenPageMode': PdfName(mode.pdfName),
             }),
         }),
         catalog,

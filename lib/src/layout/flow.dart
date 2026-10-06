@@ -742,7 +742,7 @@ final class PageTemplate {
   /// Pages of [size] whose content area is inside [margins], in
   /// [columns] columns [columnGap] apart; [header] and [footer] give the
   /// boxes of the top and bottom margins, [background] paints under the
-  /// content.
+  /// content and [foreground] over everything.
   const new(
     this.size, {
     this.margins = const EdgeInsets.all(72),
@@ -751,6 +751,7 @@ final class PageTemplate {
     this.header,
     this.footer,
     this.background,
+    this.foreground,
   });
 
   /// The page size.
@@ -773,6 +774,9 @@ final class PageTemplate {
 
   /// Paints under a page's content.
   final void Function(PdfCanvas canvas, PageInfo page)? background;
+
+  /// Paints over a page's content and its header and footer.
+  final void Function(PdfCanvas canvas, PageInfo page)? foreground;
 
   /// The regions content flows through, in order.
   List<PdfRect> get regions {
@@ -2532,6 +2536,7 @@ final class LayoutResult {
         placed?.paint(painter, region.left, region.top);
       }
       _running(template.footer?.call(info), template, painter, header: false);
+      template.foreground?.call(pdfPage.canvas, info);
       rendered.add(pdfPage);
     }
     for (final MapEntry(key: name, value: position) in anchors.entries) {
