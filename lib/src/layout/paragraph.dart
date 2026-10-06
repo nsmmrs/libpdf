@@ -425,7 +425,8 @@ final class KnuthPlassLineBreaker extends ItemLineBreaker {
 /// it shrinks. Penalties: a hyphenation [hyphenationCost] (15% more for
 /// each character closer than five to the word's edge), two lines in a
 /// row ending in a dash [hyphenationCost] more, a lone word on a line
-/// before a forced break (a runt) [runtCost].
+/// before a forced break (a runt) [runtCost]. A penalty item's own
+/// positive cost is added to its line's.
 final class TypstLineBreaker extends ItemLineBreaker {
   /// A breaker for text set in [fontSize] points, justified or not.
   const new({
@@ -537,6 +538,12 @@ final class TypstLineBreaker extends ItemLineBreaker {
         if (forced && pred.position == previous) penalty += runtCost;
         if (hyphen) penalty += hyphenPenalty();
         if (dash && pred.dash) penalty += hyphenationCost;
+        // A break's own cost (none of Typst's: a break between the
+        // characters of a word too long for a line, say).
+        if (item case PenaltyItem(penalty: final p)
+            when !forced && !hyphen && p > 0) {
+          penalty += p;
+        }
         final cost = math.pow(1 + badness + penalty, 2).toDouble();
         if (ratio < minRatio && active == k) active++;
         final total = pred.total + cost;
