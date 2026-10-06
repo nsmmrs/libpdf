@@ -865,6 +865,8 @@ final class FlowLayout {
     this.startTemplate,
     this.keepTemplate = false,
     this.templateForPage,
+    this.notes = const {},
+    this.noteSeparator,
   }) : templates = {null: ?template, ...?templates},
        pageLabel = pageLabel ?? _decimal {
     if (this.templates[null] == null) {
@@ -901,6 +903,15 @@ final class FlowLayout {
   /// and verso pages, say); the one the content calls for when null.
   final PageTemplate Function(PageTemplate template, int number)?
   templateForPage;
+
+  /// Notes by the anchor that refers to them (footnotes): a note is set
+  /// at the bottom of the region its anchor is placed in, the region's
+  /// content making room for it; what doesn't fit there goes on at the
+  /// bottom of the next region.
+  final Map<String, LayoutBox> notes;
+
+  /// What is set above the notes of a region (a short rule, say).
+  final LayoutBox? noteSeparator;
 
   static String _decimal(int number) => '$number';
 
@@ -965,17 +976,32 @@ final class _Pass {
     // What was placed on a page that was replaced (anchors, marks: it had
     // no height), carried to the page replacing it.
     final carried = <_Placed>[];
-    while (rest != null) {
+    // Notes deferred past the end of the content go on on pages of their
+    // own.
+    while (rest != null || _deferredNotes != null) {
       final page = _newPage(template);
       if (!layout.keepTemplate) template = null;
       var discard = false;
       PageSide? side;
       for (final (i, region) in page.template.regions.indexed) {
         _regionHeight = region.height;
-        final fit = _place(rest!, region.width, region.height, atTop: true);
-        page.placed.add((region, fit.placed));
+        final content = rest ?? const BlockBox([]);
+        var fit = _place(content, region.width, region.height, atTop: true);
+        if (layout.notes.isNotEmpty || _deferredNotes != null) {
+          final (withNotes, notes) = _notes(content, region, fit);
+          fit = withNotes;
+          page.placed.add((region, fit.placed));
+          if (notes != null) {
+            page.placed.add((
+              PdfRect(region.left, region.bottom, region.width, notes.height),
+              notes.placed,
+            ));
+          }
+        } else {
+          page.placed.add((region, fit.placed));
+        }
         rest = fit.rest;
-        if (rest == null) break;
+        if (rest == null && _deferredNotes == null) break;
         if (fit.hit case BreakBox(
           kind: BreakKind.page,
           template: final name,
@@ -1026,6 +1052,69 @@ final class _Pass {
         );
       }
     }
+  }
+
+  /// The notes whose anchors were placed (each set once).
+  final Set<String> _notesSet = {};
+
+  /// The notes that didn't fit in the region before.
+  LayoutBox? _deferredNotes;
+
+  /// The anchors [placed] reports, in order.
+  static List<String> _anchorsOf(_Placed? placed) {
+    final names = <String>[];
+    placed?.visit(0, 0, (name, _, _) => names.add(name), (_) {}, (_) {});
+    return names;
+  }
+
+  /// [first] (the placing of [content] in [region]) with room made for the
+  /// notes its anchors refer to, and the notes placed at the bottom: the
+  /// content placed again in less height until its notes fit below it.
+  /// Notes that don't fit are deferred to the next region.
+  (_Fit, _Fit?) _notes(LayoutBox content, PdfRect region, _Fit first) {
+    final width = region.width;
+    var fit = first;
+    final deferred = _deferredNotes;
+    List<LayoutBox> pending(_Fit fit) => [
+      ?deferred,
+      for (final name in _anchorsOf(fit.placed))
+        if (!_notesSet.contains(name)) ?layout.notes[name],
+    ];
+    var notes = pending(fit);
+    // Each try leaves the content less room, so it places no more (and
+    // so no more notes) than the try before: it ends.
+    for (var attempt = 0; notes.isNotEmpty; attempt++) {
+      final box = BlockBox([?layout.noteSeparator, ...notes]);
+      final height = _measure(box, width);
+      if (fit.height + height <= region.height + 1e-6 || attempt == 4) {
+        break;
+      }
+      final room = region.height - height;
+      // Notes taller than most of the region: as many as fit under what
+      // is placed, the rest on the next region.
+      if (room < region.height / 4) break;
+      fit = _place(content, width, room, atTop: true);
+      notes = pending(fit);
+    }
+    for (final name in _anchorsOf(fit.placed)) {
+      if (layout.notes.containsKey(name)) _notesSet.add(name);
+    }
+    _deferredNotes = null;
+    if (notes.isEmpty) return (fit, null);
+    final room = region.height - fit.height;
+    final placed = _place(
+      BlockBox([?layout.noteSeparator, ...notes]),
+      width,
+      room,
+      atTop: false,
+    );
+    if (placed.placed == null || placed.height == 0) {
+      // None fits: all of them on the next region, without a separator.
+      _deferredNotes = BlockBox(notes);
+      return (fit, null);
+    }
+    _deferredNotes = placed.rest;
+    return (fit, placed);
   }
 
   /// The label of the page of [anchor] from the previous pass.

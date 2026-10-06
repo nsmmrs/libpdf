@@ -152,6 +152,75 @@ void main() {
     expect(result.anchors['line-7']!.page, 1);
   });
 
+  group('notes', () {
+    // 80 points a region; lines of 10 after a gap of 3.
+    LayoutResult layout(
+      List<LayoutBox> content,
+      Map<String, LayoutBox> notes,
+    ) => FlowLayout(
+      template: const PageTemplate(
+        PdfRect(0, 0, 100, 100),
+        margins: EdgeInsets.all(10),
+      ),
+      notes: notes,
+    ).layout(content);
+
+    test('go to the bottom of the region their anchor is in', () {
+      final result = layout(
+        [const CustomBox(_Lines(20, 0))],
+        {
+          'line-2': const CustomBox(
+            _Fixed(25),
+            style: BoxStyle(anchor: 'note'),
+          ),
+        },
+      );
+      // The content leaves the note 25 points: 5 lines on the first page.
+      expect(result.anchors['line-4']!.page, 0);
+      expect(result.anchors['line-5']!.page, 1);
+      final note = result.anchors['note']!;
+      expect(note.page, 0);
+      // Its top 25 points above the region's bottom.
+      expect(note.y, closeTo(35, 1e-6));
+    });
+
+    test('a note too long for the region goes on in the next', () {
+      final result = layout(
+        [const CustomBox(_Lines(3, 0))],
+        {'line-1': const CustomBox(_Lines(12, 0, prefix: 'n'))},
+      );
+      // Under the 3 lines (33 points), 4 of the note's lines; then 7 on a
+      // page of their own, then the last.
+      expect(result.anchors['n-3']!.page, 0);
+      expect(result.anchors['n-4']!.page, 1);
+      expect(result.anchors['n-10']!.page, 1);
+      expect(result.anchors['n-11']!.page, 2);
+      expect(result.pageCount, 3);
+    });
+
+    test('are set once, with a separator above them', () {
+      final result = FlowLayout(
+        template: const PageTemplate(
+          PdfRect(0, 0, 100, 100),
+          margins: EdgeInsets.all(10),
+        ),
+        notes: {
+          'line-0': const CustomBox(
+            _Fixed(10),
+            style: BoxStyle(anchor: 'note'),
+          ),
+        },
+        noteSeparator: const CustomBox(
+          _Fixed(5),
+          style: BoxStyle(anchor: 'rule'),
+        ),
+      ).layout([const CustomBox(_Lines(2, 0))]);
+      expect(result.pageCount, 1);
+      expect(result.anchors['rule']!.y, closeTo(25, 1e-6));
+      expect(result.anchors['note']!.y, closeTo(20, 1e-6));
+    });
+  });
+
   test('a block reserves its bottom padding only below its last child', () {
     // 80 points a region; lines of 10 after a gap of 3.
     LayoutResult layout(int count) =>
@@ -688,10 +757,13 @@ _Raster _raster(File pdf, int page) {
 /// Custom content: [count] lines of 10 points from [from], with a gap of
 /// 3 points above each piece.
 final class _Lines implements CustomContent {
-  const new(this.count, this.from);
+  const new(this.count, this.from, {this.prefix = 'line'});
 
   final int count;
   final int from;
+
+  /// The anchors' names before their numbers.
+  final String prefix;
 
   @override
   CustomPlacement? place(
@@ -699,15 +771,17 @@ final class _Lines implements CustomContent {
     double available, {
     required bool atTop,
   }) {
-    final fit = ((available - 3) / 10).floor().clamp(0, count - from);
+    final fit = available.isInfinite
+        ? count - from
+        : ((available - 3) / 10).floor().clamp(0, count - from);
     if (fit == 0 && !atTop) return null;
     final n = fit == 0 ? 1 : fit;
     return CustomPlacement(
       height: 3 + n * 10,
       paint: (page, x, top) {},
-      rest: from + n < count ? _Lines(count, from + n) : null,
+      rest: from + n < count ? _Lines(count, from + n, prefix: prefix) : null,
       anchors: [
-        for (var i = 0; i < n; i++) ('line-${from + i}', 0, 3 + i * 10),
+        for (var i = 0; i < n; i++) ('$prefix-${from + i}', 0, 3 + i * 10),
       ],
     );
   }
