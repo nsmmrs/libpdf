@@ -165,7 +165,7 @@ final class BoxStyle {
   /// a region) goes to the top of the next region, the content after it
   /// filling the room; one that fits goes to the top or the bottom of its
   /// region ([FloatPlacement]), the content flowing around it. Blocks and
-  /// custom boxes float, not inside columns or tables.
+  /// custom boxes float, not inside columns, tables or framed blocks.
   final FloatPlacement? float;
 
   /// Whether the box floats.
@@ -1333,6 +1333,14 @@ final class _Pass {
     double available, {
     required bool atTop,
   }) => switch (box) {
+    // Nothing floats out of a framed block (padded, bordered, filled or
+    // decorated): it stays in its frame.
+    BlockBox(:final style)
+        when style.padding != EdgeInsets.zero ||
+            style.border != Border.none ||
+            style.background != null ||
+            style.decoration != null =>
+      _withoutFloats(() => _block(box, width, available, atTop: atTop)),
     BlockBox() => _block(box, width, available, atTop: atTop),
     ParagraphBox() => _paragraph(box, width, available, atTop: atTop),
     ImageBox() => _image(box, width, available, atTop: atTop),

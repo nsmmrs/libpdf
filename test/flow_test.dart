@@ -255,6 +255,18 @@ void main() {
       expect(result.anchors['line-0']!.page, 0);
     });
 
+    test('stay in a framed block', () {
+      final result = layout([
+        BlockBox([
+          const CustomBox(_Lines(2, 0)),
+          figureAt(FloatPlacement.bottom),
+          const CustomBox(_Lines(1, 0, prefix: 'b')),
+        ], style: const BoxStyle(padding: EdgeInsets.all(2))),
+      ]);
+      // In the flow: the line after it below it.
+      expect(result.anchors['fig']!.y, greaterThan(result.anchors['b-0']!.y));
+    });
+
     test('auto: to the nearer edge', () {
       final early = layout([
         const CustomBox(_Lines(1, 0)),
