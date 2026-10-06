@@ -13,3 +13,9 @@ Made from them:
 - `notoserif-kern-subtables.ttf`: `notoserif-regular-latin.ttf` with a
   `kern` table of two subtables (A V −80; then T o −60 and A V −40), made
   with fontTools.
+- `notoserif-cff.otf`: `notoserif-regular-latin.ttf` with CFF outlines
+  (the same curves, cubic), each glyph's outline in a local subroutine or,
+  for every fifth glyph, a global one, and a hint mask in `H`, made with
+  fontTools.
+- `notoserif-cid.otf`: `notoserif-cff.otf` as a CID-keyed font (one font
+  DICT, FDSelect format 3) whose CIDs aren't its glyph ids (1000 and up).

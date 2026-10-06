@@ -9,14 +9,14 @@ import 'dart:typed_data';
 import 'package:libpdf/src/fonts/opentype.dart';
 
 /// The glyphs to keep for [used]: `.notdef`, [used], and the components
-/// of composite glyphs, recursively.
+/// of TrueType composite glyphs, recursively (CFF glyphs have none).
 Set<int> glyphClosure(OpenTypeFont font, Iterable<int> used) {
   final keep = <int>{0};
   final queue = [...used];
   while (queue.isNotEmpty) {
     final glyph = queue.removeLast();
     if (glyph < 0 || glyph >= font.numGlyphs || !keep.add(glyph)) continue;
-    queue.addAll(font.components(glyph));
+    if (font.isTrueType) queue.addAll(font.components(glyph));
   }
   return keep;
 }
@@ -59,13 +59,17 @@ Uint8List subsetTrueType(OpenTypeFont font, Set<int> glyphs) {
     'loca': loca.buffer.asUint8List(),
     'head': head,
   };
-  final file = _assemble(tables);
+  final file = assembleFont(tables);
   headView.setUint32(8, (0xb1b0afba - _checksum(file)) & 0xffffffff);
-  return _assemble(tables);
+  return assembleFont(tables);
 }
 
-/// A font file with [tables] (sorted by tag) and a table directory.
-Uint8List _assemble(Map<String, Uint8List> tables) {
+/// A font file with [tables] (sorted by tag) and a table directory, of
+/// [sfntVersion] (TrueType outlines, or `OTTO` for CFF).
+Uint8List assembleFont(
+  Map<String, Uint8List> tables, {
+  int sfntVersion = 0x00010000,
+}) {
   final tags = tables.keys.toList()..sort();
   final count = tags.length;
   var entrySelector = 0;
@@ -74,7 +78,7 @@ Uint8List _assemble(Map<String, Uint8List> tables) {
   }
   final searchRange = (1 << entrySelector) * 16;
   final header = ByteData(12 + 16 * count)
-    ..setUint32(0, 0x00010000)
+    ..setUint32(0, sfntVersion)
     ..setUint16(4, count)
     ..setUint16(6, searchRange)
     ..setUint16(8, entrySelector)

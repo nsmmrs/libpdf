@@ -72,6 +72,8 @@ final bool _tools = _has('qpdf') && _has('pdftotext') && _has('pdftoppm');
 
 List<int> serif() =>
     File('test/fonts/notoserif-regular-latin.ttf').readAsBytesSync();
+List<int> cff() => File('test/fonts/notoserif-cff.otf').readAsBytesSync();
+List<int> cid() => File('test/fonts/notoserif-cid.otf').readAsBytesSync();
 List<int> mplus() =>
     File('test/fonts/mplus1p-regular-multilingual.ttf').readAsBytesSync();
 
@@ -224,4 +226,52 @@ void main() {
     tags: ['pdf-tools'],
     skip: _tools ? false : 'poppler missing',
   );
+
+  for (final (name, bytes) in [('name-keyed', cff), ('CID-keyed', cid)]) {
+    test(
+      'a $name CFF font is subset and renders like the TrueType font',
+      () {
+        const text = 'The quick brown fox — Ångström 0123456789 HHH';
+        final subset = textPdf([(EmbeddedFont.parse(bytes()), text)]);
+        final trueType = textPdf([(EmbeddedFont.parse(serif()), text)]);
+        final (check, extracted) = inspect(subset);
+        expect(check, contains('No syntax or stream encoding errors'));
+        expect(extracted, contains(text));
+        // Only the glyphs used, and the subroutines they call: far less
+        // than the whole font.
+        expect(subset.length, lessThan(bytes().length ~/ 4));
+        final dir = Directory.systemTemp.createTempSync('libpdf.');
+        addTearDown(() => dir.deleteSync(recursive: true));
+        Uint8List render(Uint8List pdf, String name) {
+          File('${dir.path}/$name.pdf').writeAsBytesSync(pdf);
+          Process.runSync('pdftoppm', [
+            '-r',
+            '72',
+            '-gray',
+            '-singlefile',
+            '${dir.path}/$name.pdf',
+            '${dir.path}/$name',
+          ]);
+          return File('${dir.path}/$name.pgm').readAsBytesSync();
+        }
+
+        final a = render(subset, 'cff');
+        final b = render(trueType, 'ttf');
+        expect(a.length, b.length);
+        // The same outlines (cubic where TrueType's are quadratic):
+        // about the same ink, and in the same places.
+        int ink(Uint8List image) => image.where((v) => v < 128).length;
+        var apart = 0;
+        for (var i = 0; i < a.length; i++) {
+          if ((a[i] < 128) != (b[i] < 128)) apart++;
+        }
+        expect(ink(b), greaterThan(500));
+        expect(ink(a), closeTo(ink(b), ink(b) * 0.05));
+        // Rasterized a little differently (CFF and TrueType hinting).
+        expect(apart, lessThan(ink(b) * 0.5));
+      },
+      tags: ['pdf-tools'],
+      skip: _tools ? false : 'qpdf or poppler missing',
+    );
+  }
 }

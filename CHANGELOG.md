@@ -130,3 +130,10 @@
 - `SvgImage.parse(defaultFontFamily:, fallbackFontFamily:)`: the family
   of text without a `font-family`, and a family tried after an element's
   own.
+- CFF fonts are subset: the glyphs used keep their charstrings and glyph
+  ids, the others become empty, and so do the subroutines (local and
+  global) no kept glyph calls; a CID-keyed font gets an identity charset,
+  as text addresses glyphs by id. The CFF is embedded bare
+  (`CIDFontType0C`). Fonts with CFF outlines no longer fail to embed (the
+  glyph closure read TrueType composites). A CFF that can't be rewritten
+  (`seac` accents, damaged) and CFF2 are embedded as they are.

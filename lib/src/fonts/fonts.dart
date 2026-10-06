@@ -5,6 +5,7 @@ library;
 
 import 'dart:convert';
 
+import 'package:libpdf/src/fonts/cff.dart';
 import 'package:libpdf/src/fonts/encoding.dart';
 import 'package:libpdf/src/fonts/opentype.dart';
 import 'package:libpdf/src/fonts/standard_metrics.dart';
@@ -437,10 +438,22 @@ final class EmbeddedFont extends PdfFont {
   void writeTo(PdfWriter writer) {
     final glyphs = glyphClosure(font, _used.keys);
     final trueType = font.isTrueType;
-    final program = trueType && subset
-        ? subsetTrueType(font, glyphs)
-        : font.bytes;
-    final baseName = subset && trueType ? '$_subsetTag+$name' : name;
+    // CFF outlines are rewritten (subset, with an identity charset for a
+    // CID font) when they can be, else embedded as they are.
+    final cff = trueType
+        ? null
+        : switch (font.table('CFF ')) {
+            final table? => subsetCff(table, subset ? glyphs : null),
+            null => null,
+          };
+    // A rewritten CFF is embedded bare (CIDFontType0C), the CFF of a font
+    // that couldn't be rewritten inside its OpenType file.
+    final program = trueType
+        ? (subset ? subsetTrueType(font, glyphs) : font.bytes)
+        : (cff ?? font.bytes);
+    final baseName = subset && (trueType || cff != null)
+        ? '$_subsetTag+$name'
+        : name;
     final fontFile = writer.write(
       PdfStream(
         program,
@@ -448,7 +461,7 @@ final class EmbeddedFont extends PdfFont {
           if (trueType)
             'Length1': PdfInt(program.length)
           else
-            'Subtype': const PdfName('OpenType'),
+            'Subtype': PdfName(cff != null ? 'CIDFontType0C' : 'OpenType'),
         }),
       ),
     );
