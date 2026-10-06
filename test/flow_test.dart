@@ -319,6 +319,17 @@ void main() {
       ]);
       expect(result.anchors['c']!.page, 1);
       expect(result.anchors['c']!.y, closeTo(60, 1e-6));
+      // Its margin below is outside it: still in the middle.
+      final margined = layout([
+        BlockBox(
+          [CustomBox(_Rigid(20), style: const BoxStyle(anchor: 'c'))],
+          style: const BoxStyle(
+            verticalAlign: VerticalAlign.middle,
+            margin: EdgeInsets(bottom: 12),
+          ),
+        ),
+      ]);
+      expect(margined.anchors['c']!.y, closeTo(60, 1e-6));
     });
 
     test('stays where it is when it does not start the region or fit', () {

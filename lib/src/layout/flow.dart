@@ -1423,10 +1423,10 @@ final class _Pass {
             atTop &&
             !continued &&
             available.isFinite) {
-      final whole = _measure(
-        BlockBox(box.children, style: style._lowered(0)),
-        width,
-      );
+      // (Its margin below is outside it.)
+      final whole =
+          _measure(BlockBox(box.children, style: style._lowered(0)), width) -
+          style.margin.bottom;
       if (whole < available) {
         final room =
             (available - whole) * (align == VerticalAlign.middle ? .5 : 1);
