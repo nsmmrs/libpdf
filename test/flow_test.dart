@@ -269,6 +269,9 @@ void main() {
     expect(result.tagPages['short'], (first: 1, last: 1));
     expect(result.tagPages['long'], (first: 1, last: 2));
     expect(result.tagPages['block'], (first: 2, last: 2));
+    const style = BoxStyle(margin: EdgeInsets(top: 3), anchor: 'a');
+    final tagged = style.withTag('t');
+    expect([tagged.tag, tagged.anchor, tagged.margin.top], ['t', 'a', 3]);
   });
 
   test('a page with nothing on it reads as empty', () {

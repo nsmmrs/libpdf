@@ -157,6 +157,20 @@ final class BoxStyle {
   /// border; of a custom box, painted under its content (in the box's
   /// width, without its margins).
   final BoxDecoration? decoration;
+
+  /// This style with [tag] ([BoxStyle.tag]).
+  BoxStyle withTag(String? tag) => BoxStyle(
+    margin: margin,
+    padding: padding,
+    border: border,
+    background: background,
+    keepTogether: keepTogether,
+    keepWithNext: keepWithNext,
+    anchor: anchor,
+    marks: marks,
+    decoration: decoration,
+    tag: tag,
+  );
 }
 
 /// How a box narrower than its region sits in it.
