@@ -250,6 +250,27 @@ void main() {
     expect(pageOf([const BreakBox.page(side: PageSide.recto), b]), 0);
   });
 
+  test('the layout reports the pages of tagged boxes', () {
+    final result = FlowLayout(template: rowsTemplate(4)).layout([
+      ParagraphBox(
+        Paragraph([TextRun(lines(2), body)]),
+        style: const BoxStyle(tag: 'short'),
+        orphans: 1,
+        widows: 1,
+      ),
+      ParagraphBox(
+        Paragraph([TextRun(lines(5), body)]),
+        style: const BoxStyle(tag: 'long'),
+        orphans: 1,
+        widows: 1,
+      ),
+      BlockBox([para('in a block')], style: const BoxStyle(tag: 'block')),
+    ]);
+    expect(result.tagPages['short'], (first: 1, last: 1));
+    expect(result.tagPages['long'], (first: 1, last: 2));
+    expect(result.tagPages['block'], (first: 2, last: 2));
+  });
+
   test('a page with nothing on it reads as empty', () {
     final empty = <bool>[];
     FlowLayout(

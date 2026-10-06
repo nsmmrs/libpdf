@@ -322,6 +322,62 @@ enum PageMode {
   final String pdfName;
 }
 
+/// How the document's colors are to be reproduced (ISO 32000-2, 14.11.5):
+/// an output condition with its ICC profile, as PDF/X requires.
+@immutable
+final class PdfOutputIntent {
+  /// The intent of printing to the condition [profile] (an ICC output
+  /// profile) characterizes: [identifier] names it (a registered
+  /// condition, or `Custom`), [condition] describes it, [registry] is
+  /// where [identifier] is registered (`http://www.color.org`), and
+  /// [subtype] is the standard the intent is for (`GTS_PDFX`).
+  const new(
+    this.profile, {
+    required this.identifier,
+    this.condition,
+    this.registry,
+    this.info,
+    this.subtype = 'GTS_PDFX',
+  });
+
+  /// The ICC profile's bytes.
+  final List<int> profile;
+
+  /// The output condition's identifier.
+  final String identifier;
+
+  /// A description of the output condition.
+  final String? condition;
+
+  /// The registry [identifier] is in.
+  final String? registry;
+
+  /// More about the condition (required when [identifier] isn't
+  /// registered).
+  final String? info;
+
+  /// The standard the intent is for.
+  final String subtype;
+
+  /// The profile's color components: 1 (gray), 3 (RGB, Lab) or 4 (CMYK),
+  /// from its header; null when it isn't an ICC profile.
+  int? get components {
+    if (profile.length < 20) return null;
+    return switch (String.fromCharCodes(profile.sublist(16, 20))) {
+      'GRAY' => 1,
+      'RGB ' || 'Lab ' => 3,
+      'CMYK' => 4,
+      _ => null,
+    };
+  }
+
+  /// The profile's device class (`prtr` for an output profile), from its
+  /// header; null when it isn't an ICC profile.
+  String? get deviceClass => profile.length < 16
+      ? null
+      : String.fromCharCodes(profile.sublist(12, 16));
+}
+
 /// A PDF document.
 final class PdfDocument {
   /// An empty document with [info]; [language] is its natural language
@@ -354,6 +410,9 @@ final class PdfDocument {
 
   /// Whether viewers show the title in the window's title bar.
   final bool displayTitle;
+
+  /// How the colors are to be reproduced (PDF/X: one, for `GTS_PDFX`).
+  final List<PdfOutputIntent> outputIntents = [];
 
   final List<PdfPage> _pages = [];
 
@@ -455,6 +514,8 @@ final class PdfDocument {
         },
       ),
     );
+    // PDF/X-4 is based on PDF 1.6.
+    if (info.pdfxVersion != null) return '1.6';
     return _pages.any((page) => deep(page.canvas)) ? '1.5' : '1.4';
   }
 }
@@ -521,6 +582,11 @@ final class _Saver {
             'PageMode': PdfName(mode.pdfName),
           if (document.language case final language?)
             'Lang': PdfString.text(language),
+          if (document.outputIntents.isNotEmpty)
+            'OutputIntents': PdfArray([
+              for (final intent in document.outputIntents)
+                _outputIntent(intent),
+            ]),
           if (document.openAction case final destination?)
             'OpenAction': destination._toArray(_pageRef(destination.page)),
           if (document.displayTitle || document.nonFullScreenPageMode != null)
@@ -533,6 +599,30 @@ final class _Saver {
         catalog,
       )
       ..close(root: catalog, info: info.info);
+  }
+
+  PdfDict _outputIntent(PdfOutputIntent intent) {
+    final components = intent.components;
+    if (components == null) {
+      throw ArgumentError.value(
+        intent.identifier,
+        'intent',
+        'the output profile is not an ICC profile',
+      );
+    }
+    return PdfDict({
+      'Type': const PdfName('OutputIntent'),
+      'S': PdfName(intent.subtype),
+      'OutputConditionIdentifier': PdfString.text(intent.identifier),
+      if (intent.condition case final condition?)
+        'OutputCondition': PdfString.text(condition),
+      if (intent.registry case final registry?)
+        'RegistryName': PdfString.text(registry),
+      if (intent.info case final info?) 'Info': PdfString.text(info),
+      'DestOutputProfile': writer.write(
+        PdfStream(intent.profile, dict: PdfDict({'N': PdfInt(components)})),
+      ),
+    });
   }
 
   void _writePage(PdfPage page, PdfRef parent) {

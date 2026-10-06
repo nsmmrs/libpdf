@@ -255,6 +255,43 @@ void main() {
     );
   });
 
+  test('PDF/X: an output intent with its profile, and the identification', () {
+    // An ICC header: an output (printer) profile for CMYK.
+    final profile = Uint8List(132)..setAll(12, 'prtrCMYK'.codeUnits);
+    final document = PdfDocument(
+      info: const PdfInfo(
+        title: 'Book',
+        trapped: false,
+        pdfxVersion: 'PDF/X-4',
+      ),
+    );
+    document.outputIntents.add(
+      PdfOutputIntent(profile, identifier: 'Custom', info: 'A printer'),
+    );
+    document.addPage(const PdfRect(0, 0, 100, 100));
+    final pdf = saved(document);
+    final qdf =
+        Process.runSync('qpdf', [
+              '--qdf',
+              '--object-streams=disable',
+              pdf.path,
+              '-',
+            ], stdoutEncoding: latin1).stdout
+            as String;
+    expect(qdf, startsWith('%PDF-1.6'));
+    expect(qdf, contains('/OutputIntents ['));
+    expect(qdf, contains('/S /GTS_PDFX'));
+    expect(qdf, contains('/OutputConditionIdentifier (Custom)'));
+    expect(qdf, contains('/N 4'));
+    expect(qdf, contains('/Trapped /False'));
+    expect(qdf, contains('/GTS_PDFXVersion (PDF/X-4)'));
+    expect(
+      qdf,
+      contains('<pdfxid:GTS_PDFXVersion>PDF/X-4</pdfxid:GTS_PDFXVersion>'),
+    );
+    expect(PdfOutputIntent(profile, identifier: 'x').deviceClass, 'prtr');
+  });
+
   test('marked content with actual text reads as that text', () {
     final style = PdfTextStyle(StandardFont.helvetica, 12);
     final pdf = saved(

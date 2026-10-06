@@ -53,6 +53,8 @@ final class PdfInfo {
     this.keywords,
     this.creator,
     this.producer,
+    this.trapped,
+    this.pdfxVersion,
   });
 
   /// The title.
@@ -72,6 +74,14 @@ final class PdfInfo {
 
   /// The application that produced the PDF.
   final String? producer;
+
+  /// Whether the document has been trapped for print (`/Trapped`), when
+  /// known; PDF/X requires it.
+  final bool? trapped;
+
+  /// The PDF/X version the document conforms to (`PDF/X-4`), written as
+  /// `GTS_PDFXVersion` in the information and the XMP metadata.
+  final String? pdfxVersion;
 }
 
 /// Writes a PDF file to a sink.
@@ -209,6 +219,10 @@ final class PdfWriter {
         'Producer': PdfString.text(producer),
       'CreationDate': PdfString(ascii.encode(pdfDate(date))),
       'ModDate': PdfString(ascii.encode(pdfDate(date))),
+      if (info.trapped case final trapped?)
+        'Trapped': PdfName(trapped ? 'True' : 'False'),
+      if (info.pdfxVersion case final version?)
+        'GTS_PDFXVersion': PdfString.text(version),
     });
     final metadata = PdfStream(
       utf8.encode(xmpPacket(info, date)),
@@ -367,7 +381,20 @@ String xmpPacket(PdfInfo info, DateTime date) {
     ..write('<rdf:Description rdf:about=""\n')
     ..write(' xmlns:dc="http://purl.org/dc/elements/1.1/"\n')
     ..write(' xmlns:xmp="http://ns.adobe.com/xap/1.0/"\n')
-    ..write(' xmlns:pdf="http://ns.adobe.com/pdf/1.3/">\n');
+    ..write(' xmlns:pdf="http://ns.adobe.com/pdf/1.3/"')
+    ..write(
+      info.pdfxVersion == null
+          ? '>\n'
+          : '\n xmlns:pdfxid="http://www.npes.org/pdfx/ns/id/">\n',
+    );
+  if (info.pdfxVersion case final version?) {
+    out.write(
+      '<pdfxid:GTS_PDFXVersion>${escape(version)}</pdfxid:GTS_PDFXVersion>\n',
+    );
+  }
+  if (info.trapped case final trapped?) {
+    out.write('<pdf:Trapped>${trapped ? 'True' : 'False'}</pdf:Trapped>\n');
+  }
   if (info.title case final title?) {
     out.write(
       '<dc:title><rdf:Alt><rdf:li xml:lang="x-default">${escape(title)}'

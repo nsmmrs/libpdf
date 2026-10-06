@@ -119,6 +119,7 @@ final class BoxStyle {
     this.anchor,
     this.marks = const {},
     this.decoration,
+    this.tag,
   });
 
   /// The space outside the border.
@@ -142,6 +143,11 @@ final class BoxStyle {
 
   /// A name for the box's position (its top), for destinations.
   final String? anchor;
+
+  /// A name the layout reports the pages the box is placed on by
+  /// ([LayoutResult.tagPages]): the first and the last, when it breaks
+  /// across pages.
+  final String? tag;
 
   /// Running marks the box sets where it starts (a chapter title for the
   /// running header).
@@ -763,10 +769,20 @@ final class PageTemplate {
     this.footer,
     this.background,
     this.foreground,
+    this.trimBox,
+    this.bleedBox,
   });
 
   /// The page size.
   final PdfRect size;
+
+  /// The finished page within [size] (`TrimBox`), for print: [size] is
+  /// then the sheet, bleed included.
+  final PdfRect? trimBox;
+
+  /// How far content may run past [trimBox] to be trimmed off
+  /// (`BleedBox`).
+  final PdfRect? bleedBox;
 
   /// The margins around the content area.
   final EdgeInsets margins;
@@ -889,7 +905,7 @@ final class FlowLayout {
       anchors = found;
       if (stable || !pass.hasReferences) break;
     }
-    return LayoutResult._(this, pass.pages, anchors);
+    return LayoutResult._(this, pass.pages, anchors, pass.tagPages);
   }
 }
 
@@ -904,6 +920,9 @@ final class _Pass {
 
   final List<_Page> pages = [];
   final Map<String, AnchorPosition> anchors = {};
+
+  /// The first and last page (1-based) of each tagged box.
+  final Map<String, ({int first, int last})> tagPages = {};
   final Map<(ParagraphBox, double), List<Line>> _lines = {};
   bool hasReferences = false;
 
@@ -981,9 +1000,18 @@ final class _Pass {
     }
     for (final (i, page) in pages.indexed) {
       for (final (region, placed) in page.placed) {
-        placed?.visit(region.left, region.top, (anchor, x, y) {
-          anchors.putIfAbsent(anchor, () => AnchorPosition(i, x, y));
-        }, page.marks.add);
+        placed?.visit(
+          region.left,
+          region.top,
+          (anchor, x, y) {
+            anchors.putIfAbsent(anchor, () => AnchorPosition(i, x, y));
+          },
+          page.marks.add,
+          (tag) {
+            final first = tagPages[tag]?.first ?? i + 1;
+            tagPages[tag] = (first: first, last: i + 1);
+          },
+        );
       }
     }
   }
@@ -1252,6 +1280,7 @@ final class _Pass {
         height,
         from == 0 ? box.style.anchor : null,
         from == 0 ? box.style.marks : const {},
+        box.style.tag,
       ),
       height,
       done ? null : ParagraphBox._rest(box, from + count),
@@ -1815,7 +1844,12 @@ final class _Pass {
     }
     final height = top + used + (rest == null ? margin.bottom : 0);
     return _Fit(
-      _PlacedTable(cells, height, rest == null ? style.anchor : null),
+      _PlacedTable(
+        cells,
+        height,
+        rest == null ? style.anchor : null,
+        style.tag,
+      ),
       height,
       rest == null ? null : TableBox._rest(box, [...headers, ...rest], widths),
     );
@@ -1850,6 +1884,7 @@ final class _Pass {
         decoration: style.decoration,
         first: !box._continued,
         last: rest == null,
+        tag: style.tag,
       ),
       height,
       rest == null ? null : CustomBox._rest(rest, style),
@@ -1961,6 +1996,7 @@ sealed class _Placed {
     double top,
     void Function(String anchor, double x, double y) anchor,
     void Function((String, String) mark) mark,
+    void Function(String tag) tag,
   );
 
   /// Paints the piece at ([x], [top]).
@@ -1986,6 +2022,7 @@ final class _PlacedSpace extends _Placed {
     double top,
     void Function(String anchor, double x, double y) anchor,
     void Function((String, String) mark) mark,
+    void Function(String tag) tag,
   ) {}
 
   @override
@@ -2033,13 +2070,21 @@ final class _PlacedBlock extends _Placed {
     double top,
     void Function(String anchor, double x, double y) anchor,
     void Function((String, String) mark) mark,
+    void Function(String tag) tag,
   ) {
     if (this.anchor case final name?) {
       anchor(name, x + style.margin.left, top - this.top);
     }
+    if (style.tag case final name?) tag(name);
     marks.entries.map((e) => (e.key, e.value)).forEach(mark);
     for (final (offset, child) in children) {
-      child.visit(x + _contentLeft, top - _contentTop - offset, anchor, mark);
+      child.visit(
+        x + _contentLeft,
+        top - _contentTop - offset,
+        anchor,
+        mark,
+        tag,
+      );
     }
   }
 
@@ -2140,9 +2185,13 @@ final class _PlacedLines extends _Placed {
     this.height,
     this.anchor,
     this.marks,
+    this.tag,
   );
 
   final Map<String, String> marks;
+
+  /// The paragraph's tag ([BoxStyle.tag]).
+  final String? tag;
 
   final List<Line> lines;
   final double left;
@@ -2157,8 +2206,10 @@ final class _PlacedLines extends _Placed {
     double top,
     void Function(String anchor, double x, double y) anchor,
     void Function((String, String) mark) mark,
+    void Function(String tag) tag,
   ) {
     if (this.anchor case final name?) anchor(name, x + left, top - this.top);
+    if (this.tag case final name?) tag(name);
     marks.entries.map((e) => (e.key, e.value)).forEach(mark);
     var y = top - this.top;
     for (final line in lines) {
@@ -2212,6 +2263,7 @@ final class _PlacedImage extends _Placed {
     double top,
     void Function(String anchor, double x, double y) anchor,
     void Function((String, String) mark) mark,
+    void Function(String tag) tag,
   ) {
     if (this.anchor case final name?) anchor(name, x + left, top - this.top);
   }
@@ -2251,6 +2303,7 @@ final class _PlacedDrawing extends _Placed {
     double top,
     void Function(String anchor, double x, double y) anchor,
     void Function((String, String) mark) mark,
+    void Function(String tag) tag,
   ) {
     if (this.anchor case final name?) anchor(name, x + left, top - this.top);
   }
@@ -2278,10 +2331,14 @@ final class _PlacedCustom extends _Placed {
     this.decoration,
     this.first = true,
     this.last = true,
+    this.tag,
   });
 
   final double width;
   final BoxDecoration? decoration;
+
+  /// The box's tag ([BoxStyle.tag]).
+  final String? tag;
   final bool first;
   final bool last;
 
@@ -2299,7 +2356,9 @@ final class _PlacedCustom extends _Placed {
     double top,
     void Function(String anchor, double x, double y) anchor,
     void Function((String, String) mark) mark,
+    void Function(String tag) tag,
   ) {
+    if (this.tag case final name?) tag(name);
     if (this.anchor case final name?) anchor(name, x + left, top - this.top);
     marks.entries.map((e) => (e.key, e.value)).forEach(mark);
     for (final (name, dx, dy) in placement.anchors) {
@@ -2338,9 +2397,10 @@ final class _PlacedColumns extends _Placed {
     double top,
     void Function(String anchor, double x, double y) anchor,
     void Function((String, String) mark) mark,
+    void Function(String tag) tag,
   ) {
     for (final (left, column) in columns) {
-      column.visit(x + left, top - this.top, anchor, mark);
+      column.visit(x + left, top - this.top, anchor, mark, tag);
     }
   }
 
@@ -2398,9 +2458,12 @@ final class _PlacedCell {
 }
 
 final class _PlacedTable extends _Placed {
-  const new(this.cells, this.height, this.anchor);
+  const new(this.cells, this.height, this.anchor, this.tag);
 
   final List<_PlacedCell> cells;
+
+  /// The table's tag ([BoxStyle.tag]).
+  final String? tag;
   @override
   final double height;
   final String? anchor;
@@ -2411,14 +2474,17 @@ final class _PlacedTable extends _Placed {
     double top,
     void Function(String anchor, double x, double y) anchor,
     void Function((String, String) mark) mark,
+    void Function(String tag) tag,
   ) {
     if (this.anchor case final name?) anchor(name, x, top);
+    if (this.tag case final name?) tag(name);
     for (final cell in cells) {
       cell.content?.visit(
         x + cell.x + cell.cell.padding.left,
         top - cell._contentTop,
         anchor,
         mark,
+        tag,
       );
     }
   }
@@ -2501,13 +2567,17 @@ final class _PlacedTable extends _Placed {
 
 /// Content laid out on pages, ready to render.
 final class LayoutResult {
-  new _(this._layout, this._pages, this.anchors);
+  new _(this._layout, this._pages, this.anchors, this.tagPages);
 
   final FlowLayout _layout;
   final List<_Page> _pages;
 
   /// Where each anchor is.
   final Map<String, AnchorPosition> anchors;
+
+  /// The first and last page (1-based) of each box with a tag
+  /// ([BoxStyle.tag]): a box that breaks across pages has two.
+  final Map<String, ({int first, int last})> tagPages;
 
   /// The number of pages.
   int get pageCount => _pages.length;
@@ -2544,7 +2614,11 @@ final class LayoutResult {
         isEmpty: page.placed.every((p) => (p.$2?.height ?? 0) == 0),
       );
       final template = page.template;
-      final pdfPage = document.addPage(template.size);
+      final pdfPage = document.addPage(
+        template.size,
+        trimBox: template.trimBox,
+        bleedBox: template.bleedBox,
+      );
       final painter = _Painter(pdfPage.canvas, pdfPage);
       template.background?.call(pdfPage.canvas, info);
       _running(template.header?.call(info), template, painter, header: true);

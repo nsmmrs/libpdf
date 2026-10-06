@@ -34,6 +34,7 @@ export 'src/drawing/document.dart'
         PdfDestination,
         PdfDocument,
         PdfOutlineItem,
+        PdfOutputIntent,
         PdfPage,
         UriTarget,
         XyzDestination;
