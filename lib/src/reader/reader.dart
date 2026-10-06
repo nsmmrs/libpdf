@@ -577,6 +577,8 @@ final class _Lexer {
   /// The next word (regular characters), consumed.
   String word() {
     _skipSpace();
+    // A damaged file may have taken the position past its end.
+    if (_at > _bytes.length) _at = _bytes.length;
     final start = _at;
     while (!_done && _isRegular(_byte)) {
       _at++;

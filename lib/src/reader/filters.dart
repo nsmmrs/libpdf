@@ -32,6 +32,21 @@ Uint8List decodeStream(
     _ => const <PdfDict?>[],
   };
   var data = stream.data;
+  try {
+    data = _decode(data, filters, parameters, resolve);
+  } on FormatException catch (error) {
+    throw PdfFormatException('a stream could not be decoded: ${error.message}');
+  }
+  return data;
+}
+
+Uint8List _decode(
+  Uint8List input,
+  List<PdfName> filters,
+  List<PdfDict?> parameters,
+  PdfObject? Function(PdfObject?) resolve,
+) {
+  var data = input;
   for (final (i, filter) in filters.indexed) {
     final params = i < parameters.length ? parameters[i] : null;
     data = switch (filter.value) {

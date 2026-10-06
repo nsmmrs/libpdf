@@ -50,7 +50,16 @@ final class _Data {
     return _view.getInt32(at);
   }
 
-  String tag(int at) => latin1.decode(bytes.sublist(at, at + 4));
+  String tag(int at) {
+    _check(at, 4);
+    return latin1.decode(bytes.sublist(at, at + 4));
+  }
+
+  /// The [length] bytes at [at].
+  Uint8List slice(int at, int length) {
+    _check(at, length);
+    return Uint8List.sublistView(bytes, at, at + length);
+  }
 
   /// A 16.16 fixed-point number.
   double fixed(int at) => i32(at) / 65536;
@@ -130,9 +139,7 @@ final class OpenTypeFont {
   /// The bytes of table [tag], or `null`.
   Uint8List? table(String tag) {
     final t = _tables[tag];
-    return t == null
-        ? null
-        : Uint8List.sublistView(bytes, t.offset, t.offset + t.length);
+    return t == null ? null : _data.slice(t.offset, t.length);
   }
 
   /// The table tags, in the directory's order.
@@ -284,7 +291,7 @@ final class OpenTypeFont {
         final platform = _data.u16(record);
         final length = _data.u16(record + 8);
         final offset = strings + _data.u16(record + 10);
-        final raw = bytes.sublist(offset, offset + length);
+        final raw = _data.slice(offset, length);
         if (platform == 3 || platform == 0) {
           final units = [
             for (var k = 0; k + 1 < raw.length; k += 2)
@@ -405,7 +412,10 @@ final class OpenTypeFont {
   Uint8List glyphData(int glyph) {
     final (start, end) = _glyphRange(glyph);
     final glyf = _require('glyf');
-    return Uint8List.sublistView(bytes, glyf.offset + start, glyf.offset + end);
+    if (end < start) {
+      throw FontFormatException('glyph $glyph has a negative length');
+    }
+    return _data.slice(glyf.offset + start, end - start);
   }
 
   (int, int) _glyphRange(int glyph) {
@@ -423,13 +433,13 @@ final class OpenTypeFont {
   List<int> components(int glyph) {
     final data = glyphData(glyph);
     if (data.length < 10) return const [];
-    final view = ByteData.sublistView(data);
-    if (view.getInt16(0) >= 0) return const [];
+    final view = _Data(data);
+    if (view.i16(0) >= 0) return const [];
     final result = <int>[];
     var at = 10;
     while (true) {
-      final flags = view.getUint16(at);
-      result.add(view.getUint16(at + 2));
+      final flags = view.u16(at);
+      result.add(view.u16(at + 2));
       at += 4;
       at += flags & 0x0001 != 0 ? 4 : 2; // ARG_1_AND_2_ARE_WORDS
       if (flags & 0x0008 != 0) {

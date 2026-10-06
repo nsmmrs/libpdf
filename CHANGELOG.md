@@ -139,3 +139,9 @@
   (`seac` accents, damaged) and CFF2 are embedded as they are.
 - `LayoutResult.render(destinationName:)` names the destinations of the
   anchors.
+- A fuzz test (seeded) damages JPEG, PNG, SVG, font and PDF input: every
+  decoder either reads it or rejects it with its format exception. Fixed
+  on the way: a damaged font could fail with a RangeError (the name table,
+  table and glyph slices, composite glyphs), a PDF file with a damaged
+  Flate stream or a truncated dictionary likewise, and an SVG image whose
+  data URI had a bad percent escape failed the whole SVG.

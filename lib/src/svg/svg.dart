@@ -1475,11 +1475,17 @@ final class _Renderer {
     if (data != null) {
       final base64Encoded = data[2]!.contains(';base64');
       final payload = data[3]!;
-      final decoded = base64Encoded
-          ? base64.decode(payload.replaceAll(RegExp(r'\s'), ''))
-          : utf8.encode(Uri.decodeComponent(payload));
+      final List<int> decoded;
+      try {
+        decoded = base64Encoded
+            ? base64.decode(payload.replaceAll(RegExp(r'\s'), ''))
+            : _percentDecode(payload);
+      } on FormatException {
+        _warn('the data of an image could not be decoded');
+        return;
+      }
       if (data[1] == 'image/svg+xml') {
-        svgText = utf8.decode(decoded);
+        svgText = utf8.decode(decoded, allowMalformed: true);
       } else {
         bytes = Uint8List.fromList(decoded);
       }
@@ -1610,4 +1616,23 @@ PdfMatrix _parseTransform(String text) {
     matrix = next.then(matrix);
   }
   return matrix;
+}
+
+/// The bytes of the percent-encoded text [text] (a URI's data): `%XX`
+/// escapes as bytes, other characters in UTF-8, a `%` not followed by two
+/// hex digits as itself.
+List<int> _percentDecode(String text) {
+  final out = <int>[];
+  for (var i = 0; i < text.length; i++) {
+    if (text[i] == '%' && i + 2 < text.length) {
+      final byte = int.tryParse(text.substring(i + 1, i + 3), radix: 16);
+      if (byte != null) {
+        out.add(byte);
+        i += 2;
+        continue;
+      }
+    }
+    out.addAll(utf8.encode(text[i]));
+  }
+  return out;
 }
