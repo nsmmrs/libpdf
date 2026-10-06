@@ -18,6 +18,17 @@ Layers, each public and usable alone:
    and painted. Line breaking and page breaking are pluggable strategies:
    libpdf ships defaults (first fit, Knuth-Plass), and callers can supply
    their own to reproduce another engine's behavior.
+4. **Reading.** `PdfFile.parse` reads a PDF file's objects and pages
+   (cross-reference tables and streams, object streams, damaged files
+   rebuilt by scanning); its pages can be painted into another document.
+
+Fonts: the 14 standard fonts with their metrics and kerning, and OpenType
+fonts (TrueType and CFF outlines) embedded as subsets, with kerning, `liga`
+ligatures and a ToUnicode map so text stays extractable. Images: JPEG,
+PNG of every kind, and SVG (drawn as vector graphics).
+
+The examples in [`example/`](example) make a one-page hello world, a
+styled report, an SVG chart and a two-column booklet.
 
 ```dart
 import 'dart:io';

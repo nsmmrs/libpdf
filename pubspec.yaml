@@ -1,8 +1,8 @@
 name: libpdf
 description: >-
-  A pure-Dart PDF library written from ISO 32000: objects and a writer,
-  fonts, images and a typed drawing API, with a box-tree layout engine whose
-  line-breaking and pagination are pluggable strategies.
+  A pure-Dart PDF library written from ISO 32000: a writer and a reader,
+  fonts, images, drawing, and a box-tree layout engine with pluggable line
+  breaking.
 version: 0.1.0-dev
 repository: https://github.com/nsmmrs/libpdf
 issue_tracker: https://github.com/nsmmrs/libpdf/issues
