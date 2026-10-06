@@ -250,6 +250,20 @@ void main() {
     expect(pageOf([const BreakBox.page(side: PageSide.recto), b]), 0);
   });
 
+  test('a bleed grows the sheet past the trimmed page', () {
+    final document = PdfDocument();
+    FlowLayout(template: const PageTemplate(PdfRect(0, 0, 100, 200), bleed: 9))
+        .layout([para('a')])
+        .render(document);
+    final page = document.pages.single;
+    expect(
+      page.mediaBox.toString(),
+      const PdfRect(-9, -9, 118, 218).toString(),
+    );
+    expect(page.trimBox.toString(), const PdfRect(0, 0, 100, 200).toString());
+    expect(page.bleedBox.toString(), page.mediaBox.toString());
+  });
+
   test('the layout reports the pages of tagged boxes', () {
     final result = FlowLayout(template: rowsTemplate(4)).layout([
       ParagraphBox(
