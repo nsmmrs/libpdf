@@ -1331,6 +1331,11 @@ final class _Pass {
       final child = box.children[i];
       final childAtTop = atTopInside && cursor == 0;
       if (child is BreakBox) {
+        // With floating boxes waiting, the break comes after them: the
+        // region ends here, the break left for after them.
+        if (floated.isNotEmpty || _floatsWaiting > 0) {
+          return split(box.children.sublist(i));
+        }
         // A break at the top of a region: none, unless forced (or a break
         // to a template, which replaces an empty page).
         if (childAtTop &&

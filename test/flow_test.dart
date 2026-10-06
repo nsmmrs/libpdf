@@ -166,7 +166,7 @@ void main() {
       style: BoxStyle(anchor: 'fig', floating: true),
     );
 
-    test('that don\'t fit go to the next region, the text filling in', () {
+    test("that don't fit go to the next region, the text filling in", () {
       final result = layout([
         const CustomBox(_Lines(5, 0)),
         figure,
@@ -198,6 +198,19 @@ void main() {
       expect(result.anchors['fig']!.page, 1);
       expect(result.anchors['heading']!.page, 1);
       expect(result.anchors['heading']!.y, lessThan(result.anchors['fig']!.y));
+    });
+
+    test('go before a page break that comes after them', () {
+      final result = layout([
+        const CustomBox(_Lines(5, 0)),
+        figure,
+        const CustomBox(_Lines(1, 0, prefix: 'b')),
+        const BreakBox.page(),
+        const CustomBox(_Lines(1, 0, prefix: 'c')),
+      ]);
+      expect(result.anchors['b-0']!.page, 0);
+      expect(result.anchors['fig']!.page, 1);
+      expect(result.anchors['c-0']!.page, 2);
     });
 
     test('are placed after the end of the content', () {
