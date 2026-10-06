@@ -1038,36 +1038,56 @@ final class _Pass {
       PageSide? side;
       for (final (i, region) in page.template.regions.indexed) {
         _regionHeight = region.height;
-        var content = floats.isEmpty
+        final content = floats.isEmpty
             ? rest ?? const BlockBox([])
             : BlockBox([...floats.map(_unfloated), ?rest]);
         floats.clear();
         _floatsWaiting = 0;
         var fit = _place(content, region.width, region.height, atTop: true);
-        // Floating boxes that fit, at the top or the bottom of the region.
+        // Floating boxes that fit, at the top or the bottom of the region:
+        // the content in what the top ones leave.
+        final top = <LayoutBox>[];
         final bottom = <LayoutBox>[];
         if (fit.pinned.isNotEmpty) {
-          (content, fit) = _pinFloats(content, region, fit, bottom);
+          fit = _pinFloats(content, region, fit, top, bottom);
+        }
+        final topFit = top.isEmpty
+            ? null
+            : _place(BlockBox(top), region.width, region.height, atTop: true);
+        final topHeight = topFit?.height ?? 0.0;
+        final area = topHeight == 0
+            ? region
+            : PdfRect(
+                region.left,
+                region.bottom,
+                region.width,
+                region.height - topHeight,
+              );
+        if (topFit != null) {
+          page.placed.add((
+            PdfRect(
+              region.left,
+              region.bottom + area.height,
+              region.width,
+              topHeight,
+            ),
+            topFit.placed,
+          ));
         }
         if (layout.notes.isNotEmpty ||
             _deferredNotes != null ||
             bottom.isNotEmpty) {
-          final (withNotes, notes) = _notes(
-            content,
-            region,
-            fit,
-            bottom: bottom,
-          );
+          final (withNotes, notes) = _notes(content, area, fit, bottom: bottom);
           fit = withNotes;
-          page.placed.add((region, fit.placed));
+          page.placed.add((area, fit.placed));
           if (notes != null) {
             page.placed.add((
-              PdfRect(region.left, region.bottom, region.width, notes.height),
+              PdfRect(area.left, area.bottom, area.width, notes.height),
               notes.placed,
             ));
           }
         } else {
-          page.placed.add((region, fit.placed));
+          page.placed.add((area, fit.placed));
         }
         rest = fit.rest;
         floats.addAll(fit.floated);
@@ -1201,17 +1221,16 @@ final class _Pass {
   }
 
   /// [first] (the placing of [content] in [region]) with the floating
-  /// boxes it placed that fit taken out of the flow: those for the top
-  /// placed first, those for the bottom added to [bottom] (for the bottom
-  /// of the region), the content placed again around them.
-  (LayoutBox, _Fit) _pinFloats(
+  /// boxes it placed that fit taken out of the flow, for the top of the
+  /// region ([top]) or its bottom ([bottom]): the content placed again in
+  /// the height they leave.
+  _Fit _pinFloats(
     LayoutBox content,
     PdfRect region,
     _Fit first,
+    List<LayoutBox> top,
     List<LayoutBox> bottom,
   ) {
-    final top = <LayoutBox>[];
-    var placed = content;
     var fit = first;
     for (var attempt = 0; attempt < 4 && fit.pinned.isNotEmpty; attempt++) {
       var added = false;
@@ -1226,14 +1245,17 @@ final class _Pass {
         (atTop ? top : bottom).add(_unfloated(box));
       }
       if (!added) break;
-      placed = top.isEmpty ? content : BlockBox([...top, content]);
-      final reserved = bottom.isEmpty
-          ? 0.0
-          : _measure(BlockBox(bottom), region.width);
+      double measured(List<LayoutBox> boxes) =>
+          boxes.isEmpty ? 0 : _measure(BlockBox(boxes), region.width);
       _floatsWaiting = 0;
-      fit = _place(placed, region.width, region.height - reserved, atTop: true);
+      fit = _place(
+        content,
+        region.width,
+        region.height - measured(top) - measured(bottom),
+        atTop: true,
+      );
     }
-    return (placed, fit);
+    return fit;
   }
 
   /// The label of the page of [anchor] from the previous pass.

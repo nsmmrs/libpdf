@@ -244,6 +244,17 @@ void main() {
       expect(result.anchors['line-0']!.y, lessThan(70));
     });
 
+    test('at the top, after a break at the top of the region', () {
+      final result = layout([
+        const BreakBox.page(),
+        const CustomBox(_Lines(2, 0)),
+        figureAt(FloatPlacement.top),
+      ]);
+      expect(result.pageCount, 1);
+      expect(result.anchors['fig']!.y, closeTo(90, 1e-6));
+      expect(result.anchors['line-0']!.page, 0);
+    });
+
     test('auto: to the nearer edge', () {
       final early = layout([
         const CustomBox(_Lines(1, 0)),
