@@ -250,6 +250,27 @@ void main() {
     expect(pageOf([const BreakBox.page(side: PageSide.recto), b]), 0);
   });
 
+  test('a page with nothing on it reads as empty', () {
+    final empty = <bool>[];
+    FlowLayout(
+          template: rowsTemplate(
+            4,
+            footer: (page) {
+              empty.add(page.isEmpty);
+              return const [];
+            },
+          ),
+        )
+        .layout([
+          para('a'),
+          const BreakBox.page(side: PageSide.recto),
+          para('b'),
+        ])
+        .render(PdfDocument());
+    // Page 2 is the blank verso before the recto start.
+    expect(empty, [false, true, false]);
+  });
+
   test('templateForPage gives each page its template', () {
     const template = PageTemplate(PdfRect(0, 0, 100, 100));
     final margins = <double>[];

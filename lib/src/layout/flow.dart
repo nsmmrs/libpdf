@@ -715,7 +715,14 @@ final class DefaultPageBreaker implements PageBreaker {
 
 /// What a running header or footer knows about its page.
 final class PageInfo {
-  new _(this.number, this.count, this.label, this._marks, this.template);
+  new _(
+    this.number,
+    this.count,
+    this.label,
+    this._marks,
+    this.template, {
+    this.isEmpty = false,
+  });
 
   /// The template of the page.
   final PageTemplate template;
@@ -730,6 +737,10 @@ final class PageInfo {
   final String label;
 
   final Map<String, String> _marks;
+
+  /// Whether nothing was laid out on the page (a blank page before a
+  /// recto or verso start, say).
+  final bool isEmpty;
 
   /// The value of the running mark [name] on this page: the first one set
   /// on the page, or else the last one set before it.
@@ -2530,6 +2541,7 @@ final class LayoutResult {
         _layout.pageLabel(i + 1),
         marks,
         page.template,
+        isEmpty: page.placed.every((p) => (p.$2?.height ?? 0) == 0),
       );
       final template = page.template;
       final pdfPage = document.addPage(template.size);
