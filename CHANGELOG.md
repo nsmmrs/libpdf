@@ -152,3 +152,7 @@
 - `PatternHyphenator`: Liang's hyphenation over TeX patterns and
   exceptions (as hyph-utf8 distributes them), with the fewest letters
   before and after a hyphen; a `Hyphenator` for paragraphs.
+- `FlowLayout(notes:, noteSeparator:)`: notes (footnotes) by the anchor
+  that refers to them, set at the bottom of the region the anchor is
+  placed in, the region's content making room; a note that doesn't fit
+  goes on in the next region.
