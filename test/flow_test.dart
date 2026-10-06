@@ -275,6 +275,25 @@ void main() {
     expect(margins, [20, 10, 20]);
   });
 
+  test('a custom box paints its decoration under its content', () {
+    final rects = <PdfRect>[];
+    FlowLayout(template: rowsTemplate(4))
+        .layout([
+          CustomBox(
+            const _Fixed(30),
+            style: BoxStyle(
+              margin: const EdgeInsets(left: 5, top: 10),
+              decoration: (page, rect, {required first, required last}) =>
+                  rects.add(rect),
+            ),
+          ),
+        ])
+        .render(PdfDocument());
+    expect(rects, hasLength(1));
+    expect(rects.single.height, 30);
+    expect(rects.single.left, rowsTemplate(4).regions.first.left + 5);
+  });
+
   test('a trailing page break makes no empty page', () {
     final result = FlowLayout(template: rowsTemplate(4))
         .layout([para('one'), const BreakBox.page()]);
@@ -610,4 +629,24 @@ final class _Lines implements CustomContent {
 
   @override
   (double, double) intrinsicWidths() => (10, 10);
+}
+
+/// Custom content of a fixed height.
+final class _Fixed implements CustomContent {
+  const new(this.height);
+
+  final double height;
+
+  @override
+  CustomPlacement? place(
+    double width,
+    double available, {
+    required bool atTop,
+  }) => CustomPlacement(height: height, paint: (page, x, top) {});
+
+  @override
+  double minHeight(double width) => height;
+
+  @override
+  (double, double) intrinsicWidths() => (0, 0);
 }

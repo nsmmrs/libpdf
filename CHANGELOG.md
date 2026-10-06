@@ -122,3 +122,4 @@
   or verso (even) page, after a blank page when needed (`PageSide`);
   `FlowLayout(templateForPage:)` gives each page its template by number,
   for margins that differ between recto and verso pages.
+- A custom box paints its style's decoration under its content.

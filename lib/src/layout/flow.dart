@@ -147,7 +147,9 @@ final class BoxStyle {
   /// running header).
   final Map<String, String> marks;
 
-  /// Extra decoration of a block, painted over its background and border.
+  /// Extra decoration: of a block, painted over its background and
+  /// border; of a custom box, painted under its content (in the box's
+  /// width, without its margins).
   final BoxDecoration? decoration;
 }
 
@@ -1829,6 +1831,10 @@ final class _Pass {
         height,
         box._continued ? null : style.anchor,
         box._continued ? const {} : style.marks,
+        width: width - margin.horizontal,
+        decoration: style.decoration,
+        first: !box._continued,
+        last: rest == null,
       ),
       height,
       rest == null ? null : CustomBox._rest(rest, style),
@@ -2252,8 +2258,17 @@ final class _PlacedCustom extends _Placed {
     this.top,
     this.height,
     this.anchor,
-    this.marks,
-  );
+    this.marks, {
+    required this.width,
+    this.decoration,
+    this.first = true,
+    this.last = true,
+  });
+
+  final double width;
+  final BoxDecoration? decoration;
+  final bool first;
+  final bool last;
 
   final CustomPlacement placement;
   final double left;
@@ -2278,8 +2293,20 @@ final class _PlacedCustom extends _Placed {
   }
 
   @override
-  void paint(_Painter painter, double x, double top) =>
-      placement.paint(painter.page, x + left, top - this.top);
+  void paint(_Painter painter, double x, double top) {
+    decoration?.call(
+      painter.page,
+      PdfRect(
+        x + left,
+        top - this.top - placement.height,
+        width,
+        placement.height,
+      ),
+      first: first,
+      last: last,
+    );
+    placement.paint(painter.page, x + left, top - this.top);
+  }
 }
 
 final class _PlacedColumns extends _Placed {
