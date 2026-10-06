@@ -542,6 +542,12 @@ final class ParagraphBox extends LayoutBox
   ParagraphBox(Paragraph paragraph, {BoxStyle style = const BoxStyle(), int orphans = 2, int widows = 2, LineBreaker? lineBreaker})
   int orphans
   int widows
+final class PatternHyphenator implements Hyphenator
+  List<int> hyphenate(String word)
+  PatternHyphenator(String patterns, {String exceptions = '', int left = 2, int right = 3})
+  bool isEmpty
+  int left
+  int right
 final class PdfArray extends PdfObject
   List<PdfObject> items
   PdfArray([List<PdfObject>? items])

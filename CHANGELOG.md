@@ -149,3 +149,6 @@
   regular expressions, `TJ` written without per-glyph allocations, copying
   byte builders, embedded-font kerning pairs cached. BASELINE.md compares
   libpdf with package:pdf.
+- `PatternHyphenator`: Liang's hyphenation over TeX patterns and
+  exceptions (as hyph-utf8 distributes them), with the fewest letters
+  before and after a hyphen; a `Hyphenator` for paragraphs.
