@@ -122,6 +122,7 @@ final class BoxStyle {
     this.tag,
     this.float,
     this.floatBarrier = false,
+    this.verticalAlign,
   });
 
   /// The space outside the border.
@@ -176,6 +177,11 @@ final class BoxStyle {
   /// next region after them.
   final bool floatBarrier;
 
+  /// Where a block that starts a region, and fits in it whole, sits in
+  /// the room there: at the top (as without), in the middle or at the
+  /// bottom (a dedication alone on its page). Blocks only.
+  final VerticalAlign? verticalAlign;
+
   /// This style with [tag] ([BoxStyle.tag]).
   BoxStyle withTag(String? tag) => BoxStyle(
     margin: margin,
@@ -190,6 +196,7 @@ final class BoxStyle {
     tag: tag,
     float: float,
     floatBarrier: floatBarrier,
+    verticalAlign: verticalAlign,
   );
 
   /// This style without floating.
@@ -204,6 +211,28 @@ final class BoxStyle {
     marks: marks,
     decoration: decoration,
     tag: tag,
+    floatBarrier: floatBarrier,
+    verticalAlign: verticalAlign,
+  );
+
+  /// This style with the room above the block as its top margin (where
+  /// [verticalAlign] put it), kept together no more.
+  BoxStyle _lowered(double room) => BoxStyle(
+    margin: EdgeInsets(
+      top: room,
+      right: margin.right,
+      bottom: margin.bottom,
+      left: margin.left,
+    ),
+    padding: padding,
+    border: border,
+    background: background,
+    keepWithNext: keepWithNext,
+    anchor: anchor,
+    marks: marks,
+    decoration: decoration,
+    tag: tag,
+    float: float,
     floatBarrier: floatBarrier,
   );
 }
@@ -1385,6 +1414,28 @@ final class _Pass {
       final region = _regionHeight;
       if (layout.pageBreaker.moveKeptBox(whole, available, region)) {
         return _Fit.moved(box);
+      }
+    }
+    // A block aligned in the room of its region: the room above it as its
+    // top margin, when it fits whole.
+    if (style.verticalAlign case final align?
+        when align != VerticalAlign.top &&
+            atTop &&
+            !continued &&
+            available.isFinite) {
+      final whole = _measure(
+        BlockBox(box.children, style: style._lowered(0)),
+        width,
+      );
+      if (whole < available) {
+        final room =
+            (available - whole) * (align == VerticalAlign.middle ? .5 : 1);
+        return _block(
+          BlockBox(box.children, style: style._lowered(room)),
+          width,
+          available,
+          atTop: false,
+        );
       }
     }
     // The bottom padding and border close the block: a page break inside

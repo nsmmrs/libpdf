@@ -289,6 +289,49 @@ void main() {
     });
   });
 
+  group('a block aligned in its region', () {
+    // 80 points a region, its top at 90.
+    LayoutResult layout(List<LayoutBox> content) => FlowLayout(
+      template: const PageTemplate(
+        PdfRect(0, 0, 100, 100),
+        margins: EdgeInsets.all(10),
+      ),
+    ).layout(content);
+
+    BlockBox aligned(VerticalAlign align, double height) => BlockBox([
+      CustomBox(_Rigid(height), style: const BoxStyle(anchor: 'c')),
+    ], style: BoxStyle(verticalAlign: align));
+
+    test('sits in the middle or at the bottom of the room', () {
+      expect(
+        layout([aligned(VerticalAlign.middle, 20)]).anchors['c']!.y,
+        closeTo(60, 1e-6),
+      );
+      expect(
+        layout([aligned(VerticalAlign.bottom, 20)]).anchors['c']!.y,
+        closeTo(30, 1e-6),
+      );
+      // After a page break too: it starts the region.
+      final result = layout([
+        const CustomBox(_Rigid(10)),
+        const BreakBox.page(),
+        aligned(VerticalAlign.middle, 20),
+      ]);
+      expect(result.anchors['c']!.page, 1);
+      expect(result.anchors['c']!.y, closeTo(60, 1e-6));
+    });
+
+    test('stays where it is when it does not start the region or fit', () {
+      final after = layout([
+        const CustomBox(_Rigid(10)),
+        aligned(VerticalAlign.middle, 20),
+      ]);
+      expect(after.anchors['c']!.y, closeTo(80, 1e-6));
+      final tall = layout([aligned(VerticalAlign.middle, 80)]);
+      expect(tall.anchors['c']!.y, closeTo(90, 1e-6));
+    });
+  });
+
   group('notes', () {
     // 80 points a region; lines of 10 after a gap of 3.
     LayoutResult layout(

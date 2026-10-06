@@ -162,6 +162,9 @@
   region (`top`, `bottom`, `auto`: the nearer), the content flowing around
   it, or stays (`next`). `BoxStyle.floatBarrier` keeps a box (a heading)
   after the floating boxes waiting.
+- `BoxStyle.verticalAlign`: a block that starts a region and fits in it
+  whole sits in the middle or at the bottom of the room (a dedication
+  alone on its page).
 - `PdfTextStyle.skew` and `PdfTextStyle.embolden`: text slanted (an
   oblique face made from an upright one) and stroked (a bold face made
   from a regular one).
