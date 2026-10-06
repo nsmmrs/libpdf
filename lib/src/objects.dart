@@ -17,7 +17,7 @@ sealed class PdfObject {
 
   /// The object's syntax.
   Uint8List toBytes() {
-    final out = BytesBuilder(copy: false);
+    final out = BytesBuilder();
     writeTo(out);
     return out.takeBytes();
   }
@@ -114,13 +114,19 @@ String formatNumber(num value, {int precision = 5}) {
   if (v.abs() >= 1e15) {
     throw ArgumentError.value(value, 'value', 'is too large for a PDF number');
   }
-  var text = v.toStringAsFixed(precision);
-  if (text.contains('.')) {
-    text = text.replaceFirst(RegExp(r'0+$'), '');
-    if (text.endsWith('.')) text = text.substring(0, text.length - 1);
+  if (v == v.truncateToDouble()) {
+    final whole = v.toInt();
+    return whole == 0 ? '0' : '$whole';
   }
-  if (text == '-0') text = '0';
-  return text;
+  final text = v.toStringAsFixed(precision);
+  // Trailing zeros (and the point) dropped.
+  var end = text.length;
+  while (end > 0 && text.codeUnitAt(end - 1) == 0x30) {
+    end--;
+  }
+  if (end > 0 && text.codeUnitAt(end - 1) == 0x2e) end--;
+  final trimmed = text.substring(0, end);
+  return trimmed == '-0' || trimmed.isEmpty ? '0' : trimmed;
 }
 
 /// A string: bytes, written as a literal string (`(...)`) or as

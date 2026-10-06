@@ -111,7 +111,7 @@ final class PdfWriter {
   final List<(int, PdfObject)> _pending = [];
 
   /// The digest input in deterministic mode (the bytes written).
-  final BytesBuilder _digest = BytesBuilder(copy: false);
+  final BytesBuilder _digest = BytesBuilder();
 
   void _emit(List<int> bytes) {
     _sink(bytes);
@@ -141,7 +141,7 @@ final class PdfWriter {
 
   void _writeIndirect(int number, PdfObject object) {
     _locations[number] = _Offset(_offset);
-    final out = BytesBuilder(copy: false)..add(ascii.encode('$number 0 obj\n'));
+    final out = BytesBuilder()..add(ascii.encode('$number 0 obj\n'));
     _encode(object).writeTo(out);
     out.add(ascii.encode('\nendobj\n'));
     _emit(out.takeBytes());
@@ -170,8 +170,8 @@ final class PdfWriter {
   void _flushObjectStream() {
     if (_pending.isEmpty) return;
     final number = _nextNumber++;
-    final offsets = BytesBuilder(copy: false);
-    final body = BytesBuilder(copy: false);
+    final offsets = BytesBuilder();
+    final body = BytesBuilder();
     for (var i = 0; i < _pending.length; i++) {
       final (objectNumber, object) = _pending[i];
       offsets.add(ascii.encode('$objectNumber ${body.length} '));
@@ -258,7 +258,7 @@ final class PdfWriter {
     }
     out.write('trailer\n');
     _emit(ascii.encode(out.toString()));
-    final trailer = BytesBuilder(copy: false);
+    final trailer = BytesBuilder();
     PdfDict({
       'Size': PdfInt(_nextNumber),
       'Root': root,
@@ -274,7 +274,7 @@ final class PdfWriter {
     final start = _offset;
     _locations[number] = _Offset(start);
     final widthOffset = _bytesFor(start);
-    final rows = BytesBuilder(copy: false);
+    final rows = BytesBuilder();
     void row(int type, int field2, int field3) {
       rows.addByte(type);
       for (var k = widthOffset - 1; k >= 0; k--) {
@@ -305,7 +305,7 @@ final class PdfWriter {
         'ID': _fileIdArray(id),
       }),
     );
-    final out = BytesBuilder(copy: false)..add(ascii.encode('$number 0 obj\n'));
+    final out = BytesBuilder()..add(ascii.encode('$number 0 obj\n'));
     _encode(stream).writeTo(out);
     out.add(ascii.encode('\nendobj\nstartxref\n$start\n%%EOF\n'));
     _emit(out.takeBytes());

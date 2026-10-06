@@ -162,6 +162,33 @@ final class StandardFont extends PdfFont {
         _glyphs.widthForCode(code, symbolic: _data.symbolic) != null;
   }
 
+  /// The width of each code (0–255), or null for a code without a glyph.
+  late final List<double?> _widths = [
+    for (var code = 0; code < 256; code++)
+      _glyphs.widthForCode(code, symbolic: _data.symbolic)?.toDouble(),
+  ];
+
+  /// The kerning between two codes, by `left << 8 | right`.
+  late final Map<int, double> _kerns = () {
+    final codesOf = <String, List<int>>{};
+    for (var code = 0; code < 256; code++) {
+      if (_glyphs.nameForCode(code, symbolic: _data.symbolic)
+          case final name?) {
+        (codesOf[name] ??= []).add(code);
+      }
+    }
+    final kerns = <int, double>{};
+    for (final MapEntry(key: pair, :value) in _glyphs.kerning.entries) {
+      final [left, right] = pair.split(' ');
+      for (final a in codesOf[left] ?? const <int>[]) {
+        for (final b in codesOf[right] ?? const <int>[]) {
+          kerns[a << 8 | b] = value.toDouble();
+        }
+      }
+    }
+    return kerns;
+  }();
+
   @override
   List<ShapedGlyph> shape(
     String text, {
@@ -169,27 +196,19 @@ final class StandardFont extends PdfFont {
     bool ligatures = false,
   }) {
     final glyphs = <ShapedGlyph>[];
-    String? previousName;
+    var previous = -1;
     for (final rune in text.runes) {
       final code = _code(rune) ?? (_data.symbolic ? 0x20 : 0x3f); // '?'
-      final width = _glyphs.widthForCode(code, symbolic: _data.symbolic) ?? 0;
-      final name = _glyphs.nameForCode(code, symbolic: _data.symbolic);
-      if (kerning &&
-          previousName != null &&
-          name != null &&
-          glyphs.isNotEmpty) {
-        final kern = _glyphs.kerning['$previousName $name'];
+      final width = (code < 256 ? _widths[code] : null) ?? 0;
+      if (kerning && previous >= 0 && code < 256) {
+        final kern = _kerns[previous << 8 | code];
         if (kern != null) {
           final last = glyphs.removeLast();
-          glyphs.add(
-            ShapedGlyph(last.id, last.text, last.advance, kern.toDouble()),
-          );
+          glyphs.add(ShapedGlyph(last.id, last.text, last.advance, kern));
         }
       }
-      glyphs.add(
-        ShapedGlyph(code, String.fromCharCode(rune), width.toDouble()),
-      );
-      previousName = name;
+      glyphs.add(ShapedGlyph(code, String.fromCharCode(rune), width));
+      previous = code < 256 && _widths[code] != null ? code : -1;
     }
     return glyphs;
   }
@@ -309,10 +328,15 @@ final class EmbeddedFont extends PdfFont {
   /// The `kern` subtable text is kerned by alone, if any.
   final int? kernTableSubtable;
 
-  int _kerning(int left, int right) => switch (kernTableSubtable) {
-    final subtable? => font.kernTablePair(left, right, subtable: subtable) ?? 0,
-    null => font.kerning(left, right),
-  };
+  int _kerning(int left, int right) =>
+      _kerns[(left << 16) | right] ??= switch (kernTableSubtable) {
+        final subtable? =>
+          font.kernTablePair(left, right, subtable: subtable) ?? 0,
+        null => font.kerning(left, right),
+      };
+
+  /// The kerning of the pairs looked up, by `left << 16 | right`.
+  final Map<int, int> _kerns = {};
 
   /// The glyphs used so far, with the text each stands for.
   final Map<int, String> _used = {};

@@ -145,3 +145,7 @@
   table and glyph slices, composite glyphs), a PDF file with a damaged
   Flate stream or a truncated dictionary likewise, and an SVG image whose
   data URI had a bad percent escape failed the whole SVG.
+- Faster text: standard-font kerning by code, number formatting without
+  regular expressions, `TJ` written without per-glyph allocations, copying
+  byte builders, embedded-font kerning pairs cached. BASELINE.md compares
+  libpdf with package:pdf.

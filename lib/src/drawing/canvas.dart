@@ -408,7 +408,7 @@ final class GraphicsStateResource extends Resource {
 final class PdfCanvas {
   new _();
 
-  final BytesBuilder _content = BytesBuilder(copy: false);
+  final BytesBuilder _content = BytesBuilder();
 
   final Map<String, Map<String, Resource>> _resources = {};
 
@@ -517,7 +517,7 @@ final class PdfCanvas {
   /// The dash pattern (`d`): alternating dash and gap lengths starting at
   /// [phase]; empty for solid lines.
   void dash(List<double> pattern, [double phase = 0]) {
-    final out = BytesBuilder(copy: false);
+    final out = BytesBuilder();
     PdfArray.numbers(pattern).writeTo(out);
     _content
       ..add(out.takeBytes())
@@ -782,16 +782,18 @@ final class PdfCanvas {
       EmbeddedFont() => 2,
     };
     final hex = font is EmbeddedFont;
-    final out = BytesBuilder(copy: false)..addByte(0x5b); // [
-    var run = <int>[];
+    final out = BytesBuilder()..addByte(0x5b); // [
+    var start = 0;
+    var end = 0;
     void flush() {
-      if (run.isEmpty) return;
-      PdfString(run, hex: hex).writeTo(out);
-      run = [];
+      if (end == start) return;
+      PdfString(codes.sublist(start, end), hex: hex).writeTo(out);
+      start = end;
     }
 
-    for (final (i, glyph) in glyphs.indexed) {
-      run.addAll(codes.sublist(i * width, (i + 1) * width));
+    for (var i = 0; i < glyphs.length; i++) {
+      final glyph = glyphs[i];
+      end = (i + 1) * width;
       var adjustment = 0.0;
       if (i < glyphs.length - 1) adjustment -= glyph.kerning;
       if (glyph.text == ' ' && style.wordSpacing != 0) {

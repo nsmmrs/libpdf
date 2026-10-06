@@ -1,0 +1,4 @@
+# A package of its own (with package:pdf), outside the library's lints.
+analyzer:
+  language:
+    strict-casts: true

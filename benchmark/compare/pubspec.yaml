@@ -1,0 +1,11 @@
+name: libpdf_compare
+description: Compares libpdf with package:pdf on comparable documents.
+publish_to: none
+
+environment:
+  sdk: ^3.13.0
+
+dependencies:
+  libpdf:
+    path: ../..
+  pdf: ^3.11.0
