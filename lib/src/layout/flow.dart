@@ -783,17 +783,18 @@ final class PageTemplate {
     this.footer,
     this.background,
     this.foreground,
-    this.bleed = 0,
+    this.bleed,
   });
 
   /// The page size.
   final PdfRect size;
 
   /// How far the sheet runs past [size] on every side, for content that
-  /// is trimmed off in print: with a bleed, [size] is the `TrimBox` and
-  /// the sheet (`MediaBox`, `BleedBox`) is [size] grown by it. Layout is
-  /// on [size].
-  final double bleed;
+  /// is trimmed off in print: with a bleed (0 included), [size] is the
+  /// `TrimBox` and the sheet (`MediaBox`, `BleedBox`) is [size] grown by
+  /// it; without one (null), the page has no print boxes. Layout is on
+  /// [size].
+  final double? bleed;
 
   /// The margins around the content area.
   final EdgeInsets margins;
@@ -2626,18 +2627,18 @@ final class LayoutResult {
       );
       final template = page.template;
       final size = template.size;
-      final bleed = template.bleed;
-      final sheet = bleed == 0
-          ? size
-          : PdfRect(
-              size.left - bleed,
-              size.bottom - bleed,
-              size.width + 2 * bleed,
-              size.height + 2 * bleed,
-            );
-      final pdfPage = bleed == 0
-          ? document.addPage(size)
-          : document.addPage(sheet, trimBox: size, bleedBox: sheet);
+      final PdfPage pdfPage;
+      if (template.bleed case final bleed?) {
+        final sheet = PdfRect(
+          size.left - bleed,
+          size.bottom - bleed,
+          size.width + 2 * bleed,
+          size.height + 2 * bleed,
+        );
+        pdfPage = document.addPage(sheet, trimBox: size, bleedBox: sheet);
+      } else {
+        pdfPage = document.addPage(size);
+      }
       final painter = _Painter(pdfPage.canvas, pdfPage);
       template.background?.call(pdfPage.canvas, info);
       _running(template.header?.call(info), template, painter, header: true);
