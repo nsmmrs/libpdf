@@ -517,11 +517,13 @@ final class OpenTypeFont {
     final lookups = _featureLookups(t.offset, 'kern');
     if (lookups.isEmpty) return null;
     final lookupList = t.offset + _data.u16(t.offset + 8);
-    final subtables = <int>[];
+    // The pair adjustment subtables of each lookup.
+    final byLookup = <List<int>>[];
     for (final index in lookups) {
       final lookup = lookupList + _data.u16(lookupList + 2 + 2 * index);
       var type = _data.u16(lookup);
       final count = _data.u16(lookup + 4);
+      final subtables = <int>[];
       for (var s = 0; s < count; s++) {
         var sub = lookup + _data.u16(lookup + 6 + 2 * s);
         if (type == 9) {
@@ -531,14 +533,22 @@ final class OpenTypeFont {
         }
         if (type == 2) subtables.add(sub);
       }
+      if (subtables.isNotEmpty) byLookup.add(subtables);
     }
-    if (subtables.isEmpty) return null;
+    if (byLookup.isEmpty) return null;
+    // Each lookup applies in turn (their adjustments add up); within one,
+    // the first subtable that covers the pair.
     return (left, right) {
-      for (final sub in subtables) {
-        final value = _pairAdjustment(sub, left, right);
-        if (value != null) return value;
+      var total = 0;
+      for (final subtables in byLookup) {
+        for (final sub in subtables) {
+          if (_pairAdjustment(sub, left, right) case final value?) {
+            total += value;
+            break;
+          }
+        }
       }
-      return 0;
+      return total;
     };
   }
 
