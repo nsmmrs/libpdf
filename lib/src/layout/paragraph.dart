@@ -233,8 +233,13 @@ abstract base class ItemLineBreaker implements LineBreaker {
   }
 }
 
+/// The cost from which a break is a last resort for [FirstFitLineBreaker].
+const double _lastResort = 500;
+
 /// Breaks each line at the last opportunity that fits: the way most
-/// word processors (and Prawn) fill lines.
+/// word processors (and Prawn) fill lines. A break costing 500 or more
+/// (between the characters of a word too long for a line) is taken only
+/// when the line has no other.
 final class FirstFitLineBreaker extends ItemLineBreaker {
   /// A first-fit line breaker.
   const new();
@@ -249,6 +254,7 @@ final class FirstFitLineBreaker extends ItemLineBreaker {
       final available = widths(breaks.length) + _epsilon;
       var width = 0.0;
       int? candidate;
+      var lastResort = false;
       int? end;
       for (var i = s; i < items.length; i++) {
         final item = items[i];
@@ -256,9 +262,14 @@ final class FirstFitLineBreaker extends ItemLineBreaker {
           case PenaltyItem(isForced: true):
             end = width <= available || candidate == null ? i : candidate;
           case PenaltyItem(:final penalty):
-            if (penalty < PenaltyItem.never) {
+            // A costly break (between the characters of a word too long
+            // for a line) only when the line has no other.
+            final last = penalty >= _lastResort;
+            if (penalty < PenaltyItem.never &&
+                (!last || candidate == null || lastResort)) {
               if (width + item.width <= available) {
                 candidate = i;
+                lastResort = last;
               } else if (candidate == null) {
                 end = i; // overfull, but the first chance to break
               }
@@ -267,6 +278,7 @@ final class FirstFitLineBreaker extends ItemLineBreaker {
             if (i > s && items[i - 1] is BoxItem && stretch.isFinite) {
               if (width <= available) {
                 candidate = i;
+                lastResort = false;
               } else {
                 end = candidate ?? i;
               }

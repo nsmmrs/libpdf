@@ -100,6 +100,13 @@ void main() {
     }
   });
 
+  test('first fit breaks a word too long only where it must', () {
+    // The long word goes to a line of its own before it's broken.
+    final result = lines('Short words ${'x' * 60}', width: 100);
+    expect(textOf(result.first), 'Short words');
+    expect(result.skip(1).map(textOf).join(), 'x' * 60);
+  });
+
   group("Typst's breaker", () {
     test('avoids a lone word on the last line', () {
       final text = '${'a b c ' * 20}d';
