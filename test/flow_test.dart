@@ -301,7 +301,7 @@ void main() {
     BlockBox framed({required bool clone}) => BlockBox(
       [
         for (var i = 0; i < 5; i++)
-          CustomBox(_Rigid(25), style: BoxStyle(anchor: 'r$i')),
+          CustomBox(const _Rigid(25), style: BoxStyle(anchor: 'r$i')),
       ],
       style: BoxStyle(
         padding: const EdgeInsets(top: 5, bottom: 5),
@@ -325,10 +325,10 @@ void main() {
 
     test('that ends with a break carries nothing past it', () {
       final result = layout([
-        BlockBox([
-          const CustomBox(_Rigid(10)),
-          const BreakBox.page(),
-        ], style: const BoxStyle(margin: EdgeInsets(bottom: 30))),
+        const BlockBox([
+          CustomBox(_Rigid(10)),
+          BreakBox.page(),
+        ], style: BoxStyle(margin: EdgeInsets(bottom: 30))),
         const CustomBox(_Rigid(10), style: BoxStyle(anchor: 'next')),
       ]);
       // The next box at the top of the next page: the margin is not
@@ -370,9 +370,9 @@ void main() {
       expect(result.anchors['c']!.y, closeTo(60, 1e-6));
       // Its margin below is outside it: still in the middle.
       final margined = layout([
-        BlockBox(
-          [CustomBox(_Rigid(20), style: const BoxStyle(anchor: 'c'))],
-          style: const BoxStyle(
+        const BlockBox(
+          [CustomBox(_Rigid(20), style: BoxStyle(anchor: 'c'))],
+          style: BoxStyle(
             verticalAlign: VerticalAlign.middle,
             margin: EdgeInsets(bottom: 12),
           ),
