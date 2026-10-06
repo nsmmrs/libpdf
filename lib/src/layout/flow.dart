@@ -820,7 +820,8 @@ final class PageInfo {
     this.count,
     this.label,
     this._marks,
-    this.template, {
+    this.template,
+    this._topMarks, {
     this.isEmpty = false,
   });
 
@@ -845,6 +846,13 @@ final class PageInfo {
   /// The value of the running mark [name] on this page: the first one set
   /// on the page, or else the last one set before it.
   String? mark(String name) => _marks[name];
+
+  final Map<String, String> _topMarks;
+
+  /// The value of the running mark [name] at the top of this page: the last
+  /// one set before it (what a header set at the page's top sees, as
+  /// Typst's headers do).
+  String? topMark(String name) => _topMarks[name];
 }
 
 /// The pages content is laid out on.
@@ -3016,6 +3024,7 @@ final class LayoutResult {
       // A mark's value on a page: the first set on it, else the last
       // carried over.
       final marks = {...carried};
+      final top = {...carried};
       final firsts = <String>{};
       for (final (name, value) in page.marks) {
         if (firsts.add(name)) marks[name] = value;
@@ -3027,6 +3036,7 @@ final class LayoutResult {
         _layout.pageLabel(i + 1),
         marks,
         page.template,
+        top,
         isEmpty: page.placed.every((p) => (p.$2?.height ?? 0) == 0),
       );
       final template = page.template;
