@@ -287,6 +287,61 @@ void main() {
       expect(result.pageCount, 2);
       expect(result.anchors['fig']!.page, 1);
     });
+
+    test('for the bottom that wait go to the bottom of the next region', () {
+      final result = layout([
+        const CustomBox(_Lines(5, 0)),
+        const CustomBox(
+          _Rigid(40),
+          style: BoxStyle(anchor: 'fig', float: FloatPlacement.bottom),
+        ),
+        const CustomBox(_Lines(4, 0, prefix: 'b')),
+      ]);
+      expect(result.anchors['fig']!.page, 1);
+      // At the bottom: its top 40 points above the region's bottom (10).
+      expect(result.anchors['fig']!.y, closeTo(50, 1e-6));
+      // The text it waited behind at the top of that region.
+      expect(result.anchors['b-3']!.page, 1);
+      expect(result.anchors['b-3']!.y, greaterThan(50));
+    });
+
+    test('keep their clearance from the text', () {
+      LayoutResult at(double clearance) => layout([
+        const CustomBox(_Lines(2, 0)),
+        CustomBox(
+          const _Rigid(20),
+          style: BoxStyle(
+            anchor: 'fig',
+            float: FloatPlacement.top,
+            floatClearance: clearance,
+          ),
+        ),
+      ]);
+      expect(at(0).anchors['fig']!.y, closeTo(90, 1e-6));
+      expect(
+        at(0).anchors['line-0']!.y - at(15).anchors['line-0']!.y,
+        closeTo(15, 1e-6),
+      );
+    });
+  });
+
+  test("a box's margin below takes no more than the room left", () {
+    // 80 points: a box 75 tall with a margin of 20 below, then another.
+    final result =
+        FlowLayout(
+          template: const PageTemplate(
+            PdfRect(0, 0, 100, 100),
+            margins: EdgeInsets.all(10),
+          ),
+        ).layout([
+          const CustomBox(
+            _Rigid(75),
+            style: BoxStyle(margin: EdgeInsets(bottom: 20)),
+          ),
+          const CustomBox(_Rigid(10), style: BoxStyle(anchor: 'next')),
+        ]);
+    expect(result.anchors['next']!.page, 1);
+    expect(result.anchors['next']!.y, closeTo(90, 1e-6));
   });
 
   group('a block split across regions', () {

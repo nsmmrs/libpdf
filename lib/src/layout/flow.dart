@@ -124,6 +124,7 @@ final class BoxStyle {
     this.floatBarrier = false,
     this.verticalAlign,
     this.cloneEdges = false,
+    this.floatClearance = 0,
   });
 
   /// The space outside the border.
@@ -189,6 +190,11 @@ final class BoxStyle {
   /// the first piece alone at its top and the last at its bottom.
   final bool cloneEdges;
 
+  /// The space between a floating box set at the top or bottom of a
+  /// region and the content (below it at the top, above it at the
+  /// bottom: Typst's `clearance`).
+  final double floatClearance;
+
   /// This style with [tag] ([BoxStyle.tag]).
   BoxStyle withTag(String? tag) => BoxStyle(
     margin: margin,
@@ -205,6 +211,7 @@ final class BoxStyle {
     floatBarrier: floatBarrier,
     verticalAlign: verticalAlign,
     cloneEdges: cloneEdges,
+    floatClearance: floatClearance,
   );
 
   /// This style without floating.
@@ -222,6 +229,7 @@ final class BoxStyle {
     floatBarrier: floatBarrier,
     verticalAlign: verticalAlign,
     cloneEdges: cloneEdges,
+    floatClearance: floatClearance,
   );
 
   /// This style with the room above the block as its top margin (where
@@ -244,6 +252,7 @@ final class BoxStyle {
     float: float,
     floatBarrier: floatBarrier,
     cloneEdges: cloneEdges,
+    floatClearance: floatClearance,
   );
 }
 
@@ -1085,16 +1094,36 @@ final class _Pass {
       PageSide? side;
       for (final (i, region) in page.template.regions.indexed) {
         _regionHeight = region.height;
+        // Floating boxes that waited: at the top of the region, those for
+        // the bottom at its bottom.
+        final waitingBottom = [
+          for (final float in floats)
+            if (float.style.float == FloatPlacement.bottom)
+              ..._cleared(float, top: false),
+        ];
         final content = floats.isEmpty
             ? rest ?? const BlockBox([])
-            : BlockBox([...floats.map(_unfloated), ?rest]);
+            : BlockBox([
+                for (final float in floats)
+                  if (float.style.float != FloatPlacement.bottom)
+                    _unfloated(float),
+                ?rest,
+              ]);
         floats.clear();
         _floatsWaiting = 0;
-        var fit = _place(content, region.width, region.height, atTop: true);
+        final reserved = waitingBottom.isEmpty
+            ? 0.0
+            : _measure(BlockBox(waitingBottom), region.width);
+        var fit = _place(
+          content,
+          region.width,
+          region.height - reserved,
+          atTop: true,
+        );
         // Floating boxes that fit, at the top or the bottom of the region:
         // the content in what the top ones leave.
         final top = <LayoutBox>[];
-        final bottom = <LayoutBox>[];
+        final bottom = <LayoutBox>[...waitingBottom];
         if (fit.pinned.isNotEmpty) {
           fit = _pinFloats(content, region, fit, top, bottom);
         }
@@ -1289,7 +1318,7 @@ final class _Pass {
           FloatPlacement.bottom => false,
           _ => y + height / 2 < region.height / 2,
         };
-        (atTop ? top : bottom).add(_unfloated(box));
+        (atTop ? top : bottom).addAll(_cleared(box, top: atTop));
       }
       if (!added) break;
       double measured(List<LayoutBox> boxes) =>
@@ -1634,6 +1663,16 @@ final class _Pass {
   /// The floating boxes set at the top or bottom of a region (their place
   /// in the flow is skipped).
   final Set<LayoutBox> _floatsSet = Set.identity();
+
+  /// [box] set at the [top] or bottom of a region: not floating, its
+  /// clearance ([BoxStyle.floatClearance]) on the content's side.
+  static List<LayoutBox> _cleared(LayoutBox box, {required bool top}) {
+    final clearance = box.style.floatClearance;
+    if (clearance <= 0) return [_unfloated(box)];
+    return top
+        ? [_unfloated(box), SpacerBox(clearance)]
+        : [SpacerBox(clearance), _unfloated(box)];
+  }
 
   /// [box] (a floating block or custom box) as it is set at the top or
   /// bottom of a region: not floating.
@@ -2294,7 +2333,17 @@ final class _Pass {
     );
     if (placement == null) return _Fit.moved(box);
     final rest = placement.rest;
-    final height = top + placement.height + (rest == null ? margin.bottom : 0);
+    // Its margin below no more than the room left (a region's end takes
+    // what doesn't fit of it).
+    final height =
+        top +
+        placement.height +
+        (rest == null
+            ? math.min(
+                margin.bottom,
+                math.max(0.0, available - top - placement.height),
+              )
+            : 0);
     return _Fit(
       _PlacedCustom(
         placement,
