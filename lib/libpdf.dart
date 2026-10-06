@@ -119,6 +119,7 @@ export 'src/layout/paragraph.dart'
         PenaltyItem,
         TextAlign,
         TextFragment,
+        TypstLineBreaker,
         buildLines,
         paragraphItems;
 export 'src/md5.dart' show md5;

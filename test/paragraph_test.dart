@@ -88,6 +88,7 @@ void main() {
     for (final breaker in [
       const FirstFitLineBreaker(),
       const KnuthPlassLineBreaker(),
+      const TypstLineBreaker(),
     ]) {
       final result = lines(lorem, align: TextAlign.justify, breaker: breaker);
       for (final line in result.take(result.length - 1)) {
@@ -97,6 +98,51 @@ void main() {
       }
       expect(result.last.width, lessThan(200));
     }
+  });
+
+  group("Typst's breaker", () {
+    test('avoids a lone word on the last line', () {
+      final text = '${'a b c ' * 20}d';
+      // A width where first fit leaves the last word alone.
+      final width = [for (var w = 60.0; w < 160; w += 0.5) w]
+          .firstWhere((w) => textOf(lines(text, width: w).last) == 'd');
+      final typst = lines(
+        text,
+        width: width,
+        align: TextAlign.justify,
+        breaker: const TypstLineBreaker(),
+      );
+      expect(textOf(typst.last), isNot('d'));
+      expect(typst.map(textOf).join(' '), text);
+    });
+
+    test("doesn't shrink ragged lines, and balances them", () {
+      final ragged = lines(
+        lorem,
+        breaker: const TypstLineBreaker(justify: false),
+      );
+      expect(ragged.map(textOf).join(' '), lorem);
+      for (final line in ragged) {
+        expect(line.width, lessThanOrEqualTo(200 + 1e-6));
+      }
+      // No worse than first fit in its slack, the last line aside.
+      double slack(List<Line> lines) => [
+        for (final line in lines.take(lines.length - 1))
+          (200 - line.width) * (200 - line.width),
+      ].fold(0, (a, b) => a + b);
+      expect(slack(ragged), lessThanOrEqualTo(slack(lines(lorem))));
+    });
+
+    test('hyphenates when it pays, never past a forced break', () {
+      final result = lines(
+        'Hyphenation everywhere\nnext',
+        width: 60,
+        hyphenator: const EveryThird(),
+        breaker: const TypstLineBreaker(justify: false),
+      );
+      expect(textOf(result.last), 'next');
+      expect(result.map(textOf).join(' '), contains('Hyp'));
+    });
   });
 
   test('center and right alignment, and the first-line indent', () {

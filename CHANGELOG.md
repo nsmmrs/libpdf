@@ -162,6 +162,10 @@
   region (`top`, `bottom`, `auto`: the nearer), the content flowing around
   it, or stays (`next`). `BoxStyle.floatBarrier` keeps a box (a heading)
   after the floating boxes waiting.
+- `TypstLineBreaker`: Typst's line breaking (its costs: cubic badness,
+  a line too full costing a million, hyphenation 135 and more near a
+  word's edge, two dashes in a row, a lone word on the last line; ragged
+  lines that don't shrink).
 - `BoxStyle.verticalAlign`: a block that starts a region and fits in it
   whole sits in the middle or at the bottom of the room (a dedication
   alone on its page).

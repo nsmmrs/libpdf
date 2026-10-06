@@ -415,6 +415,204 @@ final class KnuthPlassLineBreaker extends ItemLineBreaker {
   }
 }
 
+/// Typst's line breaking (typst-layout's `inline/linebreak.rs`, as of
+/// v0.14): the breaks that minimize the sum of the lines' costs, each line
+/// costing (1 + badness + penalty)². A line's badness is 100·|ratio|³,
+/// its ratio how far its spaces stretch or shrink (past their stretch,
+/// the rest spread over its spaces in half-ems); a line too full costs a
+/// million rather than being refused. Ragged lines ([justify] false) may
+/// not shrink, and the last line (before a forced break) costs only what
+/// it shrinks. Penalties: a hyphenation [hyphenationCost] (15% more for
+/// each character closer than five to the word's edge), two lines in a
+/// row ending in a dash [hyphenationCost] more, a lone word on a line
+/// before a forced break (a runt) [runtCost].
+final class TypstLineBreaker extends ItemLineBreaker {
+  /// A breaker for text set in [fontSize] points, justified or not.
+  const new({
+    this.justify = true,
+    this.fontSize = 10,
+    this.hyphenationCost = 135,
+    this.runtCost = 100,
+  });
+
+  /// Whether the lines are justified (their spaces may shrink).
+  final bool justify;
+
+  /// The size of the text: stretch past the spaces' counts in half of it.
+  final double fontSize;
+
+  /// The cost of ending a line with a hyphenation.
+  final double hyphenationCost;
+
+  /// The cost of a lone word on the last line.
+  final double runtCost;
+
+  @override
+  List<int> breakItems(List<LineItem> items, LineWidths widths) {
+    final n = items.length;
+    if (n == 0) return const [];
+    // Running totals of the items before each index; infinite stretch (a
+    // fill) counted apart.
+    final width = List<double>.filled(n + 1, 0);
+    final stretch = List<double>.filled(n + 1, 0);
+    final shrink = List<double>.filled(n + 1, 0);
+    final fills = List<int>.filled(n + 1, 0);
+    final spaces = List<int>.filled(n + 1, 0);
+    for (var i = 0; i < n; i++) {
+      final item = items[i];
+      width[i + 1] = width[i] + (item is PenaltyItem ? 0 : item.width);
+      final infinite = item is GlueItem && !item.stretch.isFinite;
+      stretch[i + 1] =
+          stretch[i] + (item is GlueItem && !infinite ? item.stretch : 0);
+      shrink[i + 1] = shrink[i] + (item is GlueItem ? item.shrink : 0);
+      fills[i + 1] = fills[i] + (infinite ? 1 : 0);
+      spaces[i + 1] = spaces[i] + (item is GlueItem && !infinite ? 1 : 0);
+    }
+    bool candidate(int i) => switch (items[i]) {
+      PenaltyItem(:final penalty) => penalty < PenaltyItem.never,
+      GlueItem(stretch: final s) =>
+        i > 0 && items[i - 1] is BoxItem && s.isFinite,
+      BoxItem() => false,
+    };
+    final minRatio = justify ? -1.0 : 0.0;
+    final entries = <_TypstEntry>[_TypstEntry(-1, 0, 0, 0, null, dash: false)];
+    var active = 0;
+    var previous = -1;
+    for (var i = 0; i < n; i++) {
+      if (!candidate(i)) continue;
+      final item = items[i];
+      final forced = item is PenaltyItem && item.isForced;
+      final hyphen = item is PenaltyItem && item.flagged;
+      // The line's end without the spaces before the break.
+      var end = i;
+      while (end > 0 && items[end - 1] is GlueItem) {
+        end--;
+      }
+      var lastBox = end - 1;
+      while (lastBox >= 0 && items[lastBox] is! BoxItem) {
+        lastBox--;
+      }
+      final dash =
+          hyphen ||
+          (lastBox >= 0 && (items[lastBox] as BoxItem).text.endsWith('-'));
+      double hyphenPenalty() {
+        var left = 0;
+        for (var k = i - 1; k >= 0 && items[k] is! GlueItem; k--) {
+          if (items[k] case BoxItem(:final text)) left += text.runes.length;
+        }
+        var right = 0;
+        for (var k = i + 1; k < n && items[k] is! GlueItem; k++) {
+          if (items[k] case BoxItem(:final text)) right += text.runes.length;
+        }
+        final steps = math.max(0, 5 - left) + math.max(0, 5 - right);
+        return (1 + 0.15 * steps) * hyphenationCost;
+      }
+
+      _TypstEntry? best;
+      for (var k = active; k < entries.length; k++) {
+        final pred = entries[k];
+        final start = pred.start;
+        if (start > end) continue;
+        var w = width[end] - width[start];
+        if (item is PenaltyItem) w += item.width;
+        final available = widths(pred.line);
+        final infinite = fills[end] - fills[start] > 0;
+        final ratio = _ratio(
+          available - w,
+          infinite ? double.infinity : stretch[end] - stretch[start],
+          shrink[end] - shrink[start],
+          spaces[end] - spaces[start],
+        );
+        final double badness;
+        if (ratio < minRatio) {
+          badness = 1000000;
+        } else if (!forced || ratio < 0) {
+          badness = 100 * math.pow(ratio.abs(), 3).toDouble();
+        } else {
+          badness = 0;
+        }
+        var penalty = 0.0;
+        // A lone word: no break opportunity between the line's start and
+        // its end.
+        if (forced && pred.position == previous) penalty += runtCost;
+        if (hyphen) penalty += hyphenPenalty();
+        if (dash && pred.dash) penalty += hyphenationCost;
+        final cost = math.pow(1 + badness + penalty, 2).toDouble();
+        if (ratio < minRatio && active == k) active++;
+        final total = pred.total + cost;
+        if (best == null || best.total >= total) {
+          best = _TypstEntry(
+            i,
+            _skipDiscardable(items, i + 1),
+            pred.line + 1,
+            total,
+            pred,
+            dash: dash,
+          );
+        }
+      }
+      if (best != null) {
+        entries.add(best);
+        // Nothing breaks across a forced break.
+        if (forced) active = entries.length - 1;
+      }
+      previous = i;
+    }
+    final breaks = <int>[];
+    for (
+      _TypstEntry? at = entries.last;
+      at != null && at.position >= 0;
+      at = at.previous
+    ) {
+      breaks.add(at.position);
+    }
+    return breaks.reversed.toList();
+  }
+
+  /// How far a line's spaces stretch (positive) or shrink (negative) to
+  /// fill [rawDelta], Typst's `raw_ratio`.
+  double _ratio(double rawDelta, double stretch, double shrink, int spaces) {
+    final delta = rawDelta.abs() < 1e-9 ? 0.0 : rawDelta;
+    final adjustability = math.max<double>(0, delta >= 0 ? stretch : shrink);
+    var ratio = delta / adjustability;
+    if (ratio.isNaN) ratio = 0;
+    if (ratio > 1) {
+      final extra = (delta - adjustability) / math.max(spaces, 1);
+      ratio = 1 + extra / (fontSize / 2);
+    }
+    return ratio.clamp(-2.0, 10.0);
+  }
+}
+
+final class _TypstEntry {
+  new(
+    this.position,
+    this.start,
+    this.line,
+    this.total,
+    this.previous, {
+    required this.dash,
+  });
+
+  /// The item the line breaks at (-1 for the paragraph's start).
+  final int position;
+
+  /// The item the next line starts at.
+  final int start;
+
+  /// The number of lines up to this break.
+  final int line;
+
+  /// The cost of the lines up to this break.
+  final double total;
+
+  /// The break before.
+  final _TypstEntry? previous;
+
+  /// Whether the line ends with a dash (a hyphen).
+  final bool dash;
+}
+
 final class _Node {
   new(
     this.position,
