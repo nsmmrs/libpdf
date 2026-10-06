@@ -222,6 +222,59 @@ void main() {
     expect(result.anchors['start']!.page, 0);
   });
 
+  test('a break to a side inserts a blank page when needed', () {
+    int pageOf(List<LayoutBox> boxes) =>
+        FlowLayout(template: rowsTemplate(4)).layout(boxes).anchors['b']!.page;
+    final b = BlockBox([para('b')], style: const BoxStyle(anchor: 'b'));
+    // From page 1, the next recto is page 3: page 2 stays blank.
+    expect(
+      pageOf([para('a'), const BreakBox.page(side: PageSide.recto), b]),
+      2,
+    );
+    // From page 1, the next verso is page 2.
+    expect(
+      pageOf([para('a'), const BreakBox.page(side: PageSide.verso), b]),
+      1,
+    );
+    // At the top of a verso page, that page stays blank.
+    expect(
+      pageOf([
+        para('a'),
+        const BreakBox.page(),
+        const BreakBox.page(side: PageSide.recto),
+        b,
+      ]),
+      2,
+    );
+    // At the top of a recto page, nothing happens.
+    expect(pageOf([const BreakBox.page(side: PageSide.recto), b]), 0);
+  });
+
+  test('templateForPage gives each page its template', () {
+    const template = PageTemplate(PdfRect(0, 0, 100, 100));
+    final margins = <double>[];
+    FlowLayout(
+          template: template,
+          templateForPage: (template, number) => PageTemplate(
+            template.size,
+            margins: EdgeInsets(left: number.isOdd ? 20 : 10),
+            footer: (page) {
+              margins.add(page.template.margins.left);
+              return const [];
+            },
+          ),
+        )
+        .layout([
+          para('a'),
+          const BreakBox.page(),
+          para('b'),
+          const BreakBox.page(),
+          para('c'),
+        ])
+        .render(PdfDocument());
+    expect(margins, [20, 10, 20]);
+  });
+
   test('a trailing page break makes no empty page', () {
     final result = FlowLayout(template: rowsTemplate(4))
         .layout([para('one'), const BreakBox.page()]);

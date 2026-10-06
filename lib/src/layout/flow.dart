@@ -307,12 +307,28 @@ enum BreakKind {
   column,
 }
 
+/// A side of a spread: recto pages are the odd-numbered ones (the
+/// first page is a recto), verso pages the even-numbered ones.
+enum PageSide {
+  /// An odd-numbered page.
+  recto,
+
+  /// An even-numbered page.
+  verso;
+
+  /// The side of page [number] (1-based).
+  static PageSide of(int number) => number.isOdd ? recto : verso;
+}
+
 /// A forced break.
 final class BreakBox extends LayoutBox {
   /// A break to the next page, made from the template named [template]
   /// (the layout's choice when null); ignored at the top of a region
-  /// unless [force]d (which leaves the region blank).
-  const new page({this.template, this.force = false})
+  /// unless [force]d (which leaves the region blank). With a [side], the
+  /// content after the break starts on a page of that side, after a blank
+  /// page when needed (and at the top of a page of the other side, that
+  /// page stays blank).
+  const new page({this.template, this.force = false, this.side})
     : kind = BreakKind.page,
       super._(const BoxStyle());
 
@@ -321,6 +337,7 @@ final class BreakBox extends LayoutBox {
   const new column({this.force = false})
     : kind = BreakKind.column,
       template = null,
+      side = null,
       super._(const BoxStyle());
 
   /// The kind of break.
@@ -331,6 +348,9 @@ final class BreakBox extends LayoutBox {
 
   /// Whether the break is made even at the top of a region.
   final bool force;
+
+  /// The side of the page the content after the break starts on.
+  final PageSide? side;
 }
 
 /// Boxes flowing through [count] columns, column by column, from where
@@ -799,6 +819,7 @@ final class FlowLayout {
     this.maxPasses = 5,
     this.startTemplate,
     this.keepTemplate = false,
+    this.templateForPage,
   }) : templates = {null: ?template, ...?templates},
        pageLabel = pageLabel ?? _decimal {
     if (this.templates[null] == null) {
@@ -829,6 +850,12 @@ final class FlowLayout {
   /// alone. A break naming another template at the top of a page that's
   /// still empty then replaces that page.
   final bool keepTemplate;
+
+  /// The template of each page, from the page number (1-based) and the
+  /// template the content calls for (for margins that differ between recto
+  /// and verso pages, say); the one the content calls for when null.
+  final PageTemplate Function(PageTemplate template, int number)?
+  templateForPage;
 
   static String _decimal(int number) => '$number';
 
@@ -863,6 +890,26 @@ final class _Pass {
   final Map<(ParagraphBox, double), List<Line>> _lines = {};
   bool hasReferences = false;
 
+  /// A page of the template named [name], as the page after [pages].
+  _Page _newPage(String? name) {
+    final template = layout.templates[name] ?? layout.templates[null]!;
+    return _Page(
+      layout.templateForPage?.call(template, pages.length + 1) ?? template,
+    );
+  }
+
+  /// Adds [page], with what [carried] holds placed at its top.
+  void _add(_Page page, List<_Placed> carried) {
+    if (carried.isNotEmpty) {
+      final region = page.template.regions.first;
+      page.placed.insertAll(0, [
+        for (final placed in carried) (region, placed),
+      ]);
+      carried.clear();
+    }
+    pages.add(page);
+  }
+
   void run(List<LayoutBox> content) {
     LayoutBox? rest = BlockBox(content);
     var template = layout.startTemplate;
@@ -871,16 +918,22 @@ final class _Pass {
     // no height), carried to the page replacing it.
     final carried = <_Placed>[];
     while (rest != null) {
-      final page = _Page(layout.templates[template] ?? layout.templates[null]!);
+      final page = _newPage(template);
       if (!layout.keepTemplate) template = null;
       var discard = false;
+      PageSide? side;
       for (final (i, region) in page.template.regions.indexed) {
         _regionHeight = region.height;
         final fit = _place(rest!, region.width, region.height, atTop: true);
         page.placed.add((region, fit.placed));
         rest = fit.rest;
         if (rest == null) break;
-        if (fit.hit case BreakBox(kind: BreakKind.page, template: final name)) {
+        if (fit.hit case BreakBox(
+          kind: BreakKind.page,
+          template: final name,
+          side: final wanted,
+        )) {
+          side = wanted;
           if (name != null || !layout.keepTemplate) template = name;
           // A break to another template on a page still empty replaces it.
           discard =
@@ -893,16 +946,14 @@ final class _Pass {
       }
       if (discard) {
         carried.addAll([for (final (_, placed) in page.placed) ?placed]);
-        continue;
+      } else {
+        _add(page, carried);
       }
-      if (carried.isNotEmpty) {
-        final region = page.template.regions.first;
-        page.placed.insertAll(0, [
-          for (final placed in carried) (region, placed),
-        ]);
-        carried.clear();
+      // A break to a side: a blank page first when the next page is on
+      // the other side.
+      if (side != null && PageSide.of(pages.length + 1) != side) {
+        _add(_newPage(template), carried);
       }
-      pages.add(page);
       if (++guard > 100000) throw StateError('layout does not progress');
     }
     // A last page with nothing on it (after a trailing page break) is left
@@ -1106,7 +1157,9 @@ final class _Pass {
         // to a template, which replaces an empty page).
         if (childAtTop &&
             !child.force &&
-            (child.template == null || !layout.keepTemplate)) {
+            (child.template == null || !layout.keepTemplate) &&
+            (child.side == null ||
+                PageSide.of(pages.length + 1) == child.side)) {
           continue;
         }
         final rest = box.children.sublist(i + 1);

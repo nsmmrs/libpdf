@@ -74,6 +74,7 @@ export 'src/layout/flow.dart'
         LayoutResult,
         PageBreaker,
         PageInfo,
+        PageSide,
         PageTemplate,
         ParagraphBox,
         SpacerBox,

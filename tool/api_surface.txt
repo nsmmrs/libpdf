@@ -142,6 +142,11 @@ enum PageNumberStyle
   static PageNumberStyle none
   static PageNumberStyle upperLetters
   static PageNumberStyle upperRoman
+enum PageSide
+  PageSide of(int number)
+  static List<PageSide> values
+  static PageSide recto
+  static PageSide verso
 enum PngColorType
   List<int> bitDepths
   bool hasAlpha
@@ -219,8 +224,9 @@ final class BoxStyle
   void Function(PdfPage, PdfRect, {required bool first, required bool last})? decoration
 final class BreakBox extends LayoutBox
   BreakBox.column({bool force = false})
-  BreakBox.page({String? template, bool force = false})
+  BreakBox.page({String? template, bool force = false, PageSide? side})
   BreakKind kind
+  PageSide? side
   String? template
   bool force
 final class CloseSegment extends PathSegment
@@ -319,11 +325,12 @@ final class FixedColumnWidth extends ColumnWidth
   FixedColumnWidth(double points)
   double points
 final class FlowLayout
-  FlowLayout({PageTemplate? template, Map<String?, PageTemplate>? templates, PageBreaker pageBreaker = const DefaultPageBreaker(), LineBreaker lineBreaker = const FirstFitLineBreaker(), String Function(int)? pageLabel, int maxPasses = 5, String? startTemplate, bool keepTemplate = false})
+  FlowLayout({PageTemplate? template, Map<String?, PageTemplate>? templates, PageBreaker pageBreaker = const DefaultPageBreaker(), LineBreaker lineBreaker = const FirstFitLineBreaker(), String Function(int)? pageLabel, int maxPasses = 5, String? startTemplate, bool keepTemplate = false, PageTemplate Function(PageTemplate, int)? templateForPage})
   LayoutResult layout(List<LayoutBox> content)
   LineBreaker lineBreaker
   Map<String?, PageTemplate> templates
   PageBreaker pageBreaker
+  PageTemplate Function(PageTemplate, int)? templateForPage
   String Function(int) pageLabel
   String? startTemplate
   bool keepTemplate

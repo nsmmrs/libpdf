@@ -118,3 +118,7 @@
   turned as the page is displayed. Encrypted files are rejected.
 - A template break that replaces an empty page carries what was placed on
   it (anchors, marks) to the page replacing it.
+- `BreakBox.page(side:)`: content after the break starts on a recto (odd)
+  or verso (even) page, after a blank page when needed (`PageSide`);
+  `FlowLayout(templateForPage:)` gives each page its template by number,
+  for margins that differ between recto and verso pages.
