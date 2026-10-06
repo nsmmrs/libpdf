@@ -1510,7 +1510,15 @@ final class _Pass {
     // for them throughout).
     // (A block whose pieces each close reserves the room throughout.)
     final full = available - top - (clone ? bottom : 0);
-    final fit = _blockChildren(box, width, inner, full, top, atTop: atTop);
+    final fit = _blockChildren(
+      box,
+      width,
+      inner,
+      full,
+      top,
+      atTop: atTop,
+      reserved: clone,
+    );
     if (!clone &&
         fit.rest == null &&
         fit.hit == null &&
@@ -1523,6 +1531,7 @@ final class _Pass {
         full - bottom,
         top,
         atTop: atTop,
+        reserved: true,
       );
     }
     return fit;
@@ -1537,6 +1546,7 @@ final class _Pass {
     double room,
     double top, {
     required bool atTop,
+    bool reserved = false,
   }) {
     final style = box.style;
     final continued = box._continued;
@@ -1545,6 +1555,7 @@ final class _Pass {
     final floated = <LayoutBox>[];
     final pinned = <(LayoutBox, double, double)>[];
     var cursor = 0.0;
+    var trailing = 0.0;
     final atTopInside = atTop && top == 0;
     _Fit split(List<LayoutBox> rest, {BreakBox? hit}) {
       if (children.isEmpty &&
@@ -1553,10 +1564,16 @@ final class _Pass {
           !atTop) {
         return _Fit.moved(box);
       }
+      // (The space below the last piece placed doesn't carry to the
+      // region's end: a piece with its own bottom edge closes right
+      // under it.)
       final placed = _PlacedBlock(
         style,
         width,
-        top + cursor + (style.cloneEdges ? bottom : 0),
+        top +
+            cursor -
+            (style.cloneEdges ? trailing : 0) +
+            (style.cloneEdges ? bottom : 0),
         children,
         top: atTop || continued ? 0 : style.margin.top,
         openTop: continued,
@@ -1642,20 +1659,37 @@ final class _Pass {
       }
       children.add((cursor, fit.placed!));
       cursor += fit.height;
+      // The space below what was just placed (a spacer, a box's margin).
+      trailing = switch (child) {
+        SpacerBox() => fit.height,
+        _ when fit.rest == null => math.min(
+          child.style.margin.bottom,
+          fit.height,
+        ),
+        _ => 0.0,
+      };
       if (fit.rest != null || fit.hit != null) {
         return split([?fit.rest, ...box.children.sublist(i + 1)], hit: fit.hit);
       }
     }
+    // Its margin below no more than the room left (a region's end takes
+    // what doesn't fit of it).
+    final marginBottom = math.min<double>(
+      style.margin.bottom,
+      // ([room] has the bottom edge's room taken out when [reserved].)
+      math.max<double>(0, room + (reserved ? bottom : 0) - cursor - bottom),
+    );
     final placed = _PlacedBlock(
       style,
       width,
-      top + cursor + bottom + style.margin.bottom,
+      top + cursor + bottom + marginBottom,
       children,
       top: atTop || continued ? 0 : style.margin.top,
       openTop: continued,
       openBottom: false,
       marks: continued ? const {} : style.marks,
       anchor: continued ? null : style.anchor,
+      marginBottom: marginBottom,
     );
     return _Fit(placed, placed.height, null, floated: floated, pinned: pinned);
   }
@@ -2528,12 +2562,17 @@ final class _PlacedBlock extends _Placed {
     required this.openBottom,
     required this.marks,
     required this.anchor,
+    this.marginBottom,
   });
 
   final BoxStyle style;
   final double width;
   @override
   final double height;
+
+  /// The margin below taken (of a last piece), when less than the
+  /// style's.
+  final double? marginBottom;
 
   /// The children and their offsets below the content top.
   final List<(double, _Placed)> children;
@@ -2589,7 +2628,7 @@ final class _PlacedBlock extends _Placed {
     final left = x + style.margin.left;
     final boxWidth = width - style.margin.horizontal;
     final boxTop = top - this.top;
-    final bottomMargin = openBottom ? 0 : style.margin.bottom;
+    final bottomMargin = openBottom ? 0 : marginBottom ?? style.margin.bottom;
     final boxHeight = height - this.top - bottomMargin;
     final rect = PdfRect(left, boxTop - boxHeight, boxWidth, boxHeight);
     final uniform =

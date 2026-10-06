@@ -575,7 +575,15 @@ final class EmbeddedFont extends PdfFont {
       final run = <PdfObject>[];
       while (i < ids.length && ids[i] == start + run.length) {
         final width = _scale(font.advance(ids[i]));
-        run.add(PdfInt(truncateWidths ? width.truncate() : width.round()));
+        // Exact (a font of 2000 units to the em has half thousandths),
+        // so viewers set the glyphs where the layout measured them.
+        run.add(
+          truncateWidths
+              ? PdfInt(width.truncate())
+              : width == width.roundToDouble()
+              ? PdfInt(width.round())
+              : PdfReal(width, precision: 3),
+        );
         i += 1;
       }
       items

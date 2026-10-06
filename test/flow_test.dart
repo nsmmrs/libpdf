@@ -325,6 +325,53 @@ void main() {
     });
   });
 
+  test("a block's margin below takes no more than the room left", () {
+    final result =
+        FlowLayout(
+          template: const PageTemplate(
+            PdfRect(0, 0, 100, 100),
+            margins: EdgeInsets.all(10),
+          ),
+        ).layout([
+          const BlockBox([
+            CustomBox(_Rigid(75)),
+          ], style: BoxStyle(margin: EdgeInsets(bottom: 20))),
+          const CustomBox(_Rigid(10), style: BoxStyle(anchor: 'next')),
+        ]);
+    expect(result.anchors['next']!.page, 1);
+  });
+
+  test('a piece with cloned edges closes under its last box', () {
+    // 80 points: a block padded 5, two boxes of 30 with 10 below each,
+    // then one that goes on: the first piece ends 5 under the second box.
+    final result =
+        FlowLayout(
+          template: const PageTemplate(
+            PdfRect(0, 0, 100, 100),
+            margins: EdgeInsets.all(10),
+          ),
+        ).layout([
+          const BlockBox(
+            [
+              CustomBox(
+                _Rigid(30),
+                style: BoxStyle(margin: EdgeInsets(bottom: 10)),
+              ),
+              CustomBox(
+                _Rigid(20),
+                style: BoxStyle(margin: EdgeInsets(bottom: 10)),
+              ),
+              CustomBox(_Rigid(30), style: BoxStyle(anchor: 'rest')),
+            ],
+            style: BoxStyle(
+              padding: EdgeInsets(top: 5, bottom: 5),
+              cloneEdges: true,
+            ),
+          ),
+        ]);
+    expect(result.anchors['rest']!.page, 1);
+  });
+
   test("a box's margin below takes no more than the room left", () {
     // 80 points: a box 75 tall with a margin of 20 below, then another.
     final result =
