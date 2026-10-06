@@ -145,6 +145,31 @@ void main() {
     expect(StandardFont.named('Symbol').covers(0x3b1), isTrue);
   });
 
+  test('OpenType features substitute glyphs: old-style numerals, '
+      'small capitals', () {
+    final font = EmbeddedFont.parse(
+      File('test/fonts/notoserif-features.ttf').readAsBytesSync(),
+    );
+    expect(font.font.hasFeature('onum'), isTrue);
+    expect(font.font.hasFeature('zero'), isFalse);
+    List<int> ids(String text, [Set<String> features = const {}]) => [
+      for (final glyph in font.shape(text, features: features)) glyph.id,
+    ];
+    final lining = ids('2026');
+    final oldstyle = ids('2026', {'onum'});
+    expect(oldstyle, hasLength(4));
+    expect(oldstyle, isNot(lining));
+    final small = ids('Abc', {'smcp'});
+    // The capital stays; the lowercase letters become small capitals.
+    expect(small.first, ids('A').single);
+    expect(small.sublist(1), isNot(ids('bc')));
+    // The text they stand for is unchanged.
+    expect(
+      font.shape('2026', features: {'onum'}).map((g) => g.text).join(),
+      '2026',
+    );
+  });
+
   test('ligatures replace their sequence', () {
     final font = EmbeddedFont.parse(serif());
     final shaped = font.shape('office', ligatures: true);

@@ -659,6 +659,51 @@ final class OpenTypeFont {
     return 0;
   }
 
+  final Map<String, Map<int, int>> _singles = {};
+
+  /// The glyph each glyph becomes in [feature] (`onum`, `smcp`...): the
+  /// feature's single substitutions (GSUB lookup type 1); empty when the
+  /// font hasn't the feature.
+  Map<int, int> singleSubstitutions(String feature) =>
+      _singles[feature] ??= _readSingles(feature);
+
+  /// Whether the font's GSUB has [feature].
+  bool hasFeature(String feature) {
+    final t = _tables['GSUB'];
+    return t != null && _featureLookups(t.offset, feature).isNotEmpty;
+  }
+
+  Map<int, int> _readSingles(String feature) {
+    final t = _tables['GSUB'];
+    final result = <int, int>{};
+    if (t == null) return result;
+    final lookupList = t.offset + _data.u16(t.offset + 8);
+    for (final index in _featureLookups(t.offset, feature)) {
+      final lookup = lookupList + _data.u16(lookupList + 2 + 2 * index);
+      var type = _data.u16(lookup);
+      final count = _data.u16(lookup + 4);
+      for (var s = 0; s < count; s++) {
+        var sub = lookup + _data.u16(lookup + 6 + 2 * s);
+        if (type == 7) {
+          type = _data.u16(sub + 2);
+          sub += _data.u32(sub + 4);
+        }
+        if (type != 1) continue;
+        final format = _data.u16(sub);
+        final glyphs = _coverageGlyphs(sub + _data.u16(sub + 2));
+        for (final (k, glyph) in glyphs.indexed) {
+          final substitute = switch (format) {
+            1 => (glyph + _data.i16(sub + 4)) & 0xffff,
+            2 when k < _data.u16(sub + 4) => _data.u16(sub + 6 + 2 * k),
+            _ => null,
+          };
+          if (substitute != null) result.putIfAbsent(glyph, () => substitute);
+        }
+      }
+    }
+    return result;
+  }
+
   /// The ligatures of the `liga` feature: for a first glyph, the
   /// sequences that follow it and the glyph replacing them, longest
   /// first.

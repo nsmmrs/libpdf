@@ -19,3 +19,10 @@ Made from them:
   fontTools.
 - `notoserif-cid.otf`: `notoserif-cff.otf` as a CID-keyed font (one font
   DICT, FDSelect format 3) whose CIDs aren't its glyph ids (1000 and up).
+
+From Noto Serif 2.015 (SIL Open Font License 1.1, https://openfontlicense.org;
+© 2022 The Noto Project Authors):
+
+- `notoserif-features.ttf`: Basic Latin, with the `onum`, `smcp`, `liga`
+  and `kern` features, made with
+  `pyftsubset NotoSerif-Regular.ttf --unicodes=U+0020-007E --layout-features=onum,smcp,liga,kern --name-IDs='*'`.

@@ -141,6 +141,7 @@ final class PdfTextStyle {
     this.renderMode = TextRenderMode.fill,
     this.kerning = true,
     this.ligatures = false,
+    this.features = const {},
   });
 
   /// The font.
@@ -170,6 +171,11 @@ final class PdfTextStyle {
   /// Whether the font's ligatures apply (embedded fonts).
   final bool ligatures;
 
+  /// The OpenType features whose single substitutions apply (embedded
+  /// fonts that have them: `onum` old-style numerals, `smcp` small
+  /// capitals...).
+  final Set<String> features;
+
   /// This style with the values given changed.
   PdfTextStyle copyWith({
     PdfFont? font,
@@ -181,6 +187,7 @@ final class PdfTextStyle {
     TextRenderMode? renderMode,
     bool? kerning,
     bool? ligatures,
+    Set<String>? features,
   }) => PdfTextStyle(
     font ?? this.font,
     size ?? this.size,
@@ -191,6 +198,7 @@ final class PdfTextStyle {
     renderMode: renderMode ?? this.renderMode,
     kerning: kerning ?? this.kerning,
     ligatures: ligatures ?? this.ligatures,
+    features: features ?? this.features,
   );
 
   @override
@@ -204,7 +212,9 @@ final class PdfTextStyle {
       other.horizontalScaling == horizontalScaling &&
       other.renderMode == renderMode &&
       other.kerning == kerning &&
-      other.ligatures == ligatures;
+      other.ligatures == ligatures &&
+      other.features.length == features.length &&
+      other.features.containsAll(features);
 
   @override
   int get hashCode => Object.hash(
@@ -217,6 +227,7 @@ final class PdfTextStyle {
     renderMode,
     kerning,
     ligatures,
+    Object.hashAllUnordered(features),
   );
 
   /// The width of [glyphs] set in this style, in points.
@@ -234,8 +245,12 @@ final class PdfTextStyle {
   double measure(String text) => widthOf(shape(text));
 
   /// [text] as glyphs of this style's font.
-  List<ShapedGlyph> shape(String text) =>
-      font.shape(text, kerning: kerning, ligatures: ligatures);
+  List<ShapedGlyph> shape(String text) => font.shape(
+    text,
+    kerning: kerning,
+    ligatures: ligatures,
+    features: features,
+  );
 }
 
 /// A transparency group (ISO 32000-2, 11.6.6): a form painted as one

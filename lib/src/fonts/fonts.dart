@@ -68,11 +68,13 @@ sealed class PdfFont {
   bool covers(int codePoint);
 
   /// [text] as glyphs, with kerning (and ligatures in an embedded font)
-  /// when asked.
+  /// when asked, and in an embedded font, the single substitutions of the
+  /// OpenType [features] it has (`onum`, `smcp`...).
   List<ShapedGlyph> shape(
     String text, {
     bool kerning = true,
     bool ligatures = false,
+    Set<String> features = const {},
   });
 
   /// The width of [text] at [size] points.
@@ -194,6 +196,7 @@ final class StandardFont extends PdfFont {
     String text, {
     bool kerning = true,
     bool ligatures = false,
+    Set<String> features = const {},
   }) {
     final glyphs = <ShapedGlyph>[];
     var previous = -1;
@@ -386,13 +389,27 @@ final class EmbeddedFont extends PdfFont {
     String text, {
     bool kerning = true,
     bool ligatures = false,
+    Set<String> features = const {},
   }) {
     final runes = text.runes.toList();
+    // The features' single substitutions come first (as `smcp` comes
+    // before `liga`): a substituted glyph doesn't ligate.
+    final singles = [
+      for (final feature in features) font.singleSubstitutions(feature),
+    ];
+    int glyphOf(int rune) {
+      var glyph = font.glyphFor(rune);
+      for (final substitutions in singles) {
+        glyph = substitutions[glyph] ?? glyph;
+      }
+      return glyph;
+    }
+
     final ids = <int>[];
     final texts = <String>[];
     var i = 0;
     while (i < runes.length) {
-      final glyph = font.glyphFor(runes[i]);
+      final glyph = glyphOf(runes[i]);
       var matched = false;
       if (ligatures) {
         for (final (rest, ligature)
@@ -400,7 +417,7 @@ final class EmbeddedFont extends PdfFont {
           if (i + rest.length >= runes.length) continue;
           var all = true;
           for (var k = 0; all && k < rest.length; k++) {
-            all = font.glyphFor(runes[i + 1 + k]) == rest[k];
+            all = glyphOf(runes[i + 1 + k]) == rest[k];
           }
           if (!all) continue;
           ids.add(ligature);
