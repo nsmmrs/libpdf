@@ -738,6 +738,28 @@ final class PdfCanvas {
     _named('Do', _use('XObject', form, FormResource(form), 'Fm'));
   }
 
+  // Marked content.
+
+  /// Begins a marked-content sequence tagged [tag] (ISO 32000-2, 14.6),
+  /// to end with [endMarkedContent]. With [actualText], the sequence's
+  /// content reads as that text when text is extracted, copied or read
+  /// aloud (14.9.4): an empty one leaves decorative glyphs out.
+  void beginMarkedContent(String tag, {String? actualText}) {
+    _noPath('marked content');
+    _content.add(PdfName(tag).toBytes());
+    if (actualText != null) {
+      _content
+        ..add(latin1.encode(' '))
+        ..add(PdfDict({'ActualText': PdfString.text(actualText)}).toBytes())
+        ..add(latin1.encode(' BDC\n'));
+    } else {
+      _content.add(latin1.encode(' BMC\n'));
+    }
+  }
+
+  /// Ends the marked-content sequence [beginMarkedContent] began.
+  void endMarkedContent() => _op('EMC');
+
   // Text.
 
   /// Draws [text] in [style] with its baseline starting at ([x], [y]);

@@ -255,6 +255,35 @@ void main() {
     );
   });
 
+  test('marked content with actual text reads as that text', () {
+    final style = PdfTextStyle(StandardFont.helvetica, 12);
+    final pdf = saved(
+      page(width: 300, (c) {
+        c
+          ..text('code();', 10, 70, style)
+          ..beginMarkedContent('Span', actualText: '')
+          ..text('(1)', 80, 70, style)
+          ..endMarkedContent()
+          ..beginMarkedContent('Span', actualText: 'Seen')
+          ..text('Drawn', 10, 30, style)
+          ..endMarkedContent()
+          ..beginMarkedContent('Artifact')
+          ..endMarkedContent();
+      }),
+    );
+    final qdf =
+        Process.runSync('qpdf', [
+              '--qdf',
+              '--object-streams=disable',
+              pdf.path,
+              '-',
+            ], stdoutEncoding: latin1).stdout
+            as String;
+    expect(qdf, matches(RegExp(r'/Span\s*<<\s*/ActualText\s*\(\)\s*>>\s*BDC')));
+    expect(qdf, contains('/Artifact BMC'));
+    expect(words(pdf).map((w) => w.text), ['code();', 'Seen']);
+  });
+
   test('dashes, caps and joins', () {
     final pdf = saved(
       page((c) {
