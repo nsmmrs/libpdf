@@ -163,7 +163,7 @@ void main() {
 
     const figure = CustomBox(
       _Rigid(40),
-      style: BoxStyle(anchor: 'fig', floating: true),
+      style: BoxStyle(anchor: 'fig', float: FloatPlacement.next),
     );
 
     test("that don't fit go to the next region, the text filling in", () {
@@ -211,6 +211,52 @@ void main() {
       expect(result.anchors['b-0']!.page, 0);
       expect(result.anchors['fig']!.page, 1);
       expect(result.anchors['c-0']!.page, 2);
+    });
+
+    CustomBox figureAt(FloatPlacement float) => CustomBox(
+      const _Rigid(20),
+      style: BoxStyle(anchor: 'fig', float: float),
+    );
+
+    test('that fit may go to the bottom of the region', () {
+      final result = layout([
+        const CustomBox(_Lines(2, 0)),
+        figureAt(FloatPlacement.bottom),
+        const CustomBox(_Lines(2, 0, prefix: 'b')),
+      ]);
+      expect(result.pageCount, 1);
+      // At the bottom: its top 20 points above the region's (10).
+      expect(result.anchors['fig']!.y, closeTo(30, 1e-6));
+      // The text after it right after the text before it (lines 10
+      // points apart, a gap of 3 above each box).
+      expect(
+        result.anchors['line-1']!.y - result.anchors['b-0']!.y,
+        closeTo(13, 1e-6),
+      );
+    });
+
+    test('that fit may go to the top of the region', () {
+      final result = layout([
+        const CustomBox(_Lines(2, 0)),
+        figureAt(FloatPlacement.top),
+      ]);
+      expect(result.anchors['fig']!.y, closeTo(90, 1e-6));
+      expect(result.anchors['line-0']!.y, lessThan(70));
+    });
+
+    test('auto: to the nearer edge', () {
+      final early = layout([
+        const CustomBox(_Lines(1, 0)),
+        figureAt(FloatPlacement.auto),
+        const CustomBox(_Lines(4, 0, prefix: 'b')),
+      ]);
+      expect(early.anchors['fig']!.y, closeTo(90, 1e-6));
+      final late = layout([
+        const CustomBox(_Lines(4, 0)),
+        figureAt(FloatPlacement.auto),
+        const CustomBox(_Lines(1, 0, prefix: 'b')),
+      ]);
+      expect(late.anchors['fig']!.y, closeTo(30, 1e-6));
     });
 
     test('are placed after the end of the content', () {

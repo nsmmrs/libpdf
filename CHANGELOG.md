@@ -156,10 +156,12 @@
   that refers to them, set at the bottom of the region the anchor is
   placed in, the region's content making room; a note that doesn't fit
   goes on in the next region.
-- `BoxStyle.floating`: a box that doesn't fit where it is goes to the top
-  of the next region, the content after it filling the room (a figure);
-  `BoxStyle.floatBarrier` keeps a box (a heading) after the floating
-  boxes waiting.
+- `BoxStyle.float` (`FloatPlacement`): a box that doesn't fit where it
+  is goes to the top of the next region, the content after it filling the
+  room (a figure); one that fits goes to the top or the bottom of its
+  region (`top`, `bottom`, `auto`: the nearer), the content flowing around
+  it, or stays (`next`). `BoxStyle.floatBarrier` keeps a box (a heading)
+  after the floating boxes waiting.
 - `PdfTextStyle.skew` and `PdfTextStyle.embolden`: text slanted (an
   oblique face made from an upright one) and stroked (a bold face made
   from a regular one).

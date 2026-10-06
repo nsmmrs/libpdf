@@ -120,7 +120,7 @@ final class BoxStyle {
     this.marks = const {},
     this.decoration,
     this.tag,
-    this.floating = false,
+    this.float,
     this.floatBarrier = false,
   });
 
@@ -160,11 +160,16 @@ final class BoxStyle {
   /// width, without its margins).
   final BoxDecoration? decoration;
 
-  /// Whether the box floats: when it doesn't fit where it is (and isn't
-  /// at the top of a region), it goes to the top of the next region and
-  /// the content after it fills the room (a figure). Not inside columns
-  /// or tables.
-  final bool floating;
+  /// Where the box floats (a figure), or null when it stays in the flow.
+  /// A floating box that doesn't fit where it is (and isn't at the top of
+  /// a region) goes to the top of the next region, the content after it
+  /// filling the room; one that fits goes to the top or the bottom of its
+  /// region ([FloatPlacement]), the content flowing around it. Blocks and
+  /// custom boxes float, not inside columns or tables.
+  final FloatPlacement? float;
+
+  /// Whether the box floats.
+  bool get floating => float != null;
 
   /// Whether floating boxes waiting for the next region keep the box
   /// from being placed before them (a section heading): it starts the
@@ -183,9 +188,40 @@ final class BoxStyle {
     marks: marks,
     decoration: decoration,
     tag: tag,
-    floating: floating,
+    float: float,
     floatBarrier: floatBarrier,
   );
+
+  /// This style without floating.
+  BoxStyle get _unfloated => BoxStyle(
+    margin: margin,
+    padding: padding,
+    border: border,
+    background: background,
+    keepTogether: keepTogether,
+    keepWithNext: keepWithNext,
+    anchor: anchor,
+    marks: marks,
+    decoration: decoration,
+    tag: tag,
+    floatBarrier: floatBarrier,
+  );
+}
+
+/// Where a floating box goes when it fits in its region.
+enum FloatPlacement {
+  /// Where it is: it floats only when it doesn't fit (to the top of the
+  /// next region).
+  next,
+
+  /// To the top of its region.
+  top,
+
+  /// To the bottom of its region (above its notes).
+  bottom,
+
+  /// To the top or the bottom of its region, whichever it is nearer.
+  auto,
 }
 
 /// How a box narrower than its region sits in it.
@@ -1002,14 +1038,26 @@ final class _Pass {
       PageSide? side;
       for (final (i, region) in page.template.regions.indexed) {
         _regionHeight = region.height;
-        final content = floats.isEmpty
+        var content = floats.isEmpty
             ? rest ?? const BlockBox([])
-            : BlockBox([...floats, ?rest]);
+            : BlockBox([...floats.map(_unfloated), ?rest]);
         floats.clear();
         _floatsWaiting = 0;
         var fit = _place(content, region.width, region.height, atTop: true);
-        if (layout.notes.isNotEmpty || _deferredNotes != null) {
-          final (withNotes, notes) = _notes(content, region, fit);
+        // Floating boxes that fit, at the top or the bottom of the region.
+        final bottom = <LayoutBox>[];
+        if (fit.pinned.isNotEmpty) {
+          (content, fit) = _pinFloats(content, region, fit, bottom);
+        }
+        if (layout.notes.isNotEmpty ||
+            _deferredNotes != null ||
+            bottom.isNotEmpty) {
+          final (withNotes, notes) = _notes(
+            content,
+            region,
+            fit,
+            bottom: bottom,
+          );
           fit = withNotes;
           page.placed.add((region, fit.placed));
           if (notes != null) {
@@ -1093,7 +1141,12 @@ final class _Pass {
   /// notes its anchors refer to, and the notes placed at the bottom: the
   /// content placed again in less height until its notes fit below it.
   /// Notes that don't fit are deferred to the next region.
-  (_Fit, _Fit?) _notes(LayoutBox content, PdfRect region, _Fit first) {
+  (_Fit, _Fit?) _notes(
+    LayoutBox content,
+    PdfRect region,
+    _Fit first, {
+    List<LayoutBox> bottom = const [],
+  }) {
     final width = region.width;
     var fit = first;
     final deferred = _deferredNotes;
@@ -1102,11 +1155,18 @@ final class _Pass {
       for (final name in _anchorsOf(fit.placed))
         if (!_notesSet.contains(name)) ?layout.notes[name],
     ];
+    // The bottom of the region: its floating boxes, then its notes under
+    // the separator.
+    List<LayoutBox> area(List<LayoutBox> notes) => [
+      ...bottom,
+      if (notes.isNotEmpty) ?layout.noteSeparator,
+      ...notes,
+    ];
     var notes = pending(fit);
     // Each try leaves the content less room, so it places no more (and
     // so no more notes) than the try before: it ends.
-    for (var attempt = 0; notes.isNotEmpty; attempt++) {
-      final box = BlockBox([?layout.noteSeparator, ...notes]);
+    for (var attempt = 0; notes.isNotEmpty || bottom.isNotEmpty; attempt++) {
+      final box = BlockBox(area(notes));
       final height = _measure(box, width);
       if (fit.height + height <= region.height + 1e-6 || attempt == 4) {
         break;
@@ -1123,21 +1183,57 @@ final class _Pass {
       if (layout.notes.containsKey(name)) _notesSet.add(name);
     }
     _deferredNotes = null;
-    if (notes.isEmpty) return (fit, null);
+    if (notes.isEmpty && bottom.isEmpty) return (fit, null);
     final room = region.height - fit.height;
-    final placed = _place(
-      BlockBox([?layout.noteSeparator, ...notes]),
-      width,
-      room,
-      atTop: false,
-    );
+    final placed = _place(BlockBox(area(notes)), width, room, atTop: false);
     if (placed.placed == null || placed.height == 0) {
-      // None fits: all of them on the next region, without a separator.
-      _deferredNotes = BlockBox(notes);
-      return (fit, null);
+      // No note fits: all of them on the next region, without a
+      // separator; the floating boxes stay, as they were measured to.
+      _deferredNotes = notes.isEmpty ? null : BlockBox(notes);
+      if (bottom.isEmpty) return (fit, null);
+      return (
+        fit,
+        _place(BlockBox(bottom), width, double.infinity, atTop: false),
+      );
     }
     _deferredNotes = placed.rest;
     return (fit, placed);
+  }
+
+  /// [first] (the placing of [content] in [region]) with the floating
+  /// boxes it placed that fit taken out of the flow: those for the top
+  /// placed first, those for the bottom added to [bottom] (for the bottom
+  /// of the region), the content placed again around them.
+  (LayoutBox, _Fit) _pinFloats(
+    LayoutBox content,
+    PdfRect region,
+    _Fit first,
+    List<LayoutBox> bottom,
+  ) {
+    final top = <LayoutBox>[];
+    var placed = content;
+    var fit = first;
+    for (var attempt = 0; attempt < 4 && fit.pinned.isNotEmpty; attempt++) {
+      var added = false;
+      for (final (box, y, height) in fit.pinned) {
+        if (!_floatsSet.add(box)) continue;
+        added = true;
+        final atTop = switch (box.style.float) {
+          FloatPlacement.top => true,
+          FloatPlacement.bottom => false,
+          _ => y + height / 2 < region.height / 2,
+        };
+        (atTop ? top : bottom).add(_unfloated(box));
+      }
+      if (!added) break;
+      placed = top.isEmpty ? content : BlockBox([...top, content]);
+      final reserved = bottom.isEmpty
+          ? 0.0
+          : _measure(BlockBox(bottom), region.width);
+      _floatsWaiting = 0;
+      fit = _place(placed, region.width, region.height - reserved, atTop: true);
+    }
+    return (placed, fit);
   }
 
   /// The label of the page of [anchor] from the previous pass.
@@ -1298,6 +1394,7 @@ final class _Pass {
     final bottom = style.padding.bottom + style.border.widths.bottom;
     final children = <(double, _Placed)>[];
     final floated = <LayoutBox>[];
+    final pinned = <(LayoutBox, double, double)>[];
     var cursor = 0.0;
     final atTopInside = atTop && top == 0;
     _Fit split(List<LayoutBox> rest, {BreakBox? hit}) {
@@ -1324,11 +1421,14 @@ final class _Pass {
         rest.isEmpty && hit == null ? null : BlockBox._rest(rest, style),
         hit: hit,
         floated: floated,
+        pinned: pinned,
       );
     }
 
     for (var i = 0; i < box.children.length; i++) {
       final child = box.children[i];
+      // A floating box set at the top or bottom of a region already.
+      if (_floatsSet.contains(child)) continue;
       final childAtTop = atTopInside && cursor == 0;
       if (child is BreakBox) {
         // With floating boxes waiting, the break comes after them: the
@@ -1367,6 +1467,18 @@ final class _Pass {
         return split(box.children.sublist(i));
       }
       floated.addAll(fit.floated);
+      for (final (pin, y, height) in fit.pinned) {
+        pinned.add((pin, top + cursor + y, height));
+      }
+      // A floating box that fits: for the top or bottom of the region.
+      if (child.style.float case final float?
+          when float != FloatPlacement.next &&
+              fit.rest == null &&
+              !childAtTop &&
+              _floatDepth == 0 &&
+              (child is BlockBox || child is CustomBox)) {
+        pinned.add((child, top + cursor, fit.height));
+      }
       if (fit.rest == null &&
           fit.hit == null &&
           child.style.keepWithNext &&
@@ -1394,8 +1506,26 @@ final class _Pass {
       marks: continued ? const {} : style.marks,
       anchor: continued ? null : style.anchor,
     );
-    return _Fit(placed, placed.height, null, floated: floated);
+    return _Fit(placed, placed.height, null, floated: floated, pinned: pinned);
   }
+
+  /// The floating boxes set at the top or bottom of a region (their place
+  /// in the flow is skipped).
+  final Set<LayoutBox> _floatsSet = Set.identity();
+
+  /// [box] (a floating block or custom box) as it is set at the top or
+  /// bottom of a region: not floating.
+  static LayoutBox _unfloated(LayoutBox box) => switch (box) {
+    BlockBox(:final children, :final style) => BlockBox(
+      children,
+      style: style._unfloated,
+    ),
+    CustomBox(:final content, :final style) => CustomBox(
+      content,
+      style: style._unfloated,
+    ),
+    _ => box,
+  };
 
   /// How many floating boxes wait for the next region in the placing
   /// under way (for float barriers).
@@ -2133,6 +2263,7 @@ final class _Fit {
     this.rest, {
     this.hit,
     this.floated = const [],
+    this.pinned = const [],
   });
 
   /// Nothing placed: all of [box] goes to the next region.
@@ -2141,7 +2272,8 @@ final class _Fit {
       height = 0,
       rest = box,
       hit = null,
-      floated = const [];
+      floated = const [],
+      pinned = const [];
 
   final _Placed? placed;
   final double height;
@@ -2152,6 +2284,10 @@ final class _Fit {
 
   /// Floating boxes that didn't fit, for the top of the next region.
   final List<LayoutBox> floated;
+
+  /// Floating boxes that fit, for the top or bottom of the region: each
+  /// with its top (from the placed part's top) and height.
+  final List<(LayoutBox, double, double)> pinned;
 }
 
 final class _Page {
