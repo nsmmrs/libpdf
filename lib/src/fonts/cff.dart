@@ -7,7 +7,6 @@ library;
 
 import 'dart:typed_data';
 
-
 /// The CFF table [cff] with only the charstrings of [glyphs] (glyph ids
 /// kept; all of them when null) and the subroutines they call, and an
 /// identity charset for a CID font; null when it can't be rewritten

@@ -311,6 +311,18 @@ void main() {
     expect(order, ['background', 'footer', 'foreground']);
   });
 
+  test('render names destinations by the anchors, or as told', () {
+    final result = FlowLayout(template: rowsTemplate(4)).layout([
+      BlockBox([para('a')], style: const BoxStyle(anchor: 'ä')),
+    ]);
+    final named = PdfDocument();
+    result.render(named, destinationName: (anchor) => 'x-$anchor');
+    final saved = latin1.decode(
+      named.save(options: const PdfWriterOptions(compact: false)),
+    );
+    expect(saved, contains('(x-'));
+  });
+
   test('a trailing page break makes no empty page', () {
     final result = FlowLayout(template: rowsTemplate(4))
         .layout([para('one'), const BreakBox.page()]);

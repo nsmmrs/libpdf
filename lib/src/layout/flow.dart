@@ -2507,8 +2507,12 @@ final class LayoutResult {
     null => null,
   };
 
-  /// Adds the pages to [document]; anchors become named destinations.
-  List<PdfPage> render(PdfDocument document) {
+  /// Adds the pages to [document]; anchors become named destinations,
+  /// named by [destinationName] (the anchor's name when null).
+  List<PdfPage> render(
+    PdfDocument document, {
+    String Function(String anchor)? destinationName,
+  }) {
     final rendered = <PdfPage>[];
     final carried = <String, String>{};
     for (final (i, page) in _pages.indexed) {
@@ -2541,7 +2545,7 @@ final class LayoutResult {
     }
     for (final MapEntry(key: name, value: position) in anchors.entries) {
       document.addDestination(
-        name,
+        destinationName?.call(name) ?? name,
         PdfDestination.xyz(
           rendered[position.page],
           left: position.x,

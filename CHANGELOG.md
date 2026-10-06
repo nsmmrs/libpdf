@@ -137,3 +137,5 @@
   (`CIDFontType0C`). Fonts with CFF outlines no longer fail to embed (the
   glyph closure read TrueType composites). A CFF that can't be rewritten
   (`seac` accents, damaged) and CFF2 are embedded as they are.
+- `LayoutResult.render(destinationName:)` names the destinations of the
+  anchors.

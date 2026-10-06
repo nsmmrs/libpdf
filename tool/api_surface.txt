@@ -425,7 +425,7 @@ final class KnuthPlassLineBreaker extends ItemLineBreaker
   double linePenalty
   double tolerance
 final class LayoutResult
-  List<PdfPage> render(PdfDocument document)
+  List<PdfPage> render(PdfDocument document, {String Function(String)? destinationName})
   Map<String, AnchorPosition> anchors
   int pageCount
   int? pageOf(String anchor)
