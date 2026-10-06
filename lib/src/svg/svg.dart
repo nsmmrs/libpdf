@@ -48,16 +48,22 @@ final class SvgImage implements Graphic {
     this._images,
     this.pixelSize,
     Iterable<String> warnings,
+    this._defaultFontFamily,
+    this._fallbackFontFamily,
   ) {
     _warnings.addAll(warnings);
   }
 
   /// The SVG document [text]. [fonts] chooses PDF fonts for text (the
-  /// standard fonts by default); [images] reads referenced images;
-  /// [pixelSize] is the size of a CSS pixel (a user unit) in points.
+  /// standard fonts by default): for the families of an element's
+  /// `font-family` ([defaultFontFamily] when it has none), then for
+  /// [fallbackFontFamily]; [images] reads referenced images; [pixelSize]
+  /// is the size of a CSS pixel (a user unit) in points.
   factory parse(
     String text, {
     SvgFontResolver? fonts,
+    String defaultFontFamily = 'serif',
+    String? fallbackFontFamily,
     SvgImageResolver? images,
     double pixelSize = 0.75,
   }) {
@@ -117,6 +123,8 @@ final class SvgImage implements Graphic {
       images,
       pixelSize,
       warnings,
+      defaultFontFamily,
+      fallbackFontFamily,
     );
   }
 
@@ -127,6 +135,8 @@ final class SvgImage implements Graphic {
   final _AspectRatio _aspect;
   final SvgFontResolver _fonts;
   final SvgImageResolver? _images;
+  final String _defaultFontFamily;
+  final String? _fallbackFontFamily;
 
   /// The intrinsic width, in points.
   final double width;
@@ -344,7 +354,6 @@ const Map<String, String> _initialStyle = {
   'fill': 'black',
   'stroke': 'none',
   'font-size': '16',
-  'font-family': 'serif',
 };
 
 /// Elements that aren't drawn where they are.
@@ -1355,9 +1364,12 @@ final class _Renderer {
     final fontStyle = style['font-style'] ?? 'normal';
     final italic = fontStyle == 'italic' || fontStyle == 'oblique';
     PdfFont? font;
-    final families = (style['font-family'] ?? 'serif')
-        .split(',')
-        .map((f) => f.trim().replaceAll(RegExp(r'''^['"]|['"]$'''), ''));
+    final families = [
+      ...(style['font-family'] ?? svg._defaultFontFamily)
+          .split(',')
+          .map((f) => f.trim().replaceAll(RegExp(r'''^['"]|['"]$'''), '')),
+      ?svg._fallbackFontFamily,
+    ];
     for (final family in families) {
       font = svg._fonts(family, bold: bold, italic: italic);
       if (font != null) break;
@@ -1493,6 +1505,8 @@ final class _Renderer {
         vector = SvgImage.parse(
           svgText,
           fonts: svg._fonts,
+          defaultFontFamily: svg._defaultFontFamily,
+          fallbackFontFamily: svg._fallbackFontFamily,
           images: svg._images,
           pixelSize: svg.pixelSize,
         );

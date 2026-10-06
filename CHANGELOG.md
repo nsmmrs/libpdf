@@ -127,3 +127,6 @@
   footer. `PdfDocument.openAction` (where the document opens),
   `PdfDocument(nonFullScreenPageMode:)` and `PdfDestination.fitHeight`
   (`FitV`).
+- `SvgImage.parse(defaultFontFamily:, fallbackFontFamily:)`: the family
+  of text without a `font-family`, and a family tried after an element's
+  own.

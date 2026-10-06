@@ -839,7 +839,7 @@ final class StandardFont extends PdfFont
 final class SvgImage implements Graphic
   List<String> warnings
   String? rootAttribute(String name)
-  SvgImage.parse(String text, {PdfFont? Function(String, {required bool bold, required bool italic})? fonts, Uint8List? Function(String)? images, double pixelSize = 0.75})
+  SvgImage.parse(String text, {PdfFont? Function(String, {required bool bold, required bool italic})? fonts, String defaultFontFamily = 'serif', String? fallbackFontFamily, Uint8List? Function(String)? images, double pixelSize = 0.75})
   double height
   double intrinsicHeight
   double intrinsicWidth

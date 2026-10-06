@@ -40,6 +40,29 @@ Uint8List svgPdf(SvgImage svg) {
 }
 
 void main() {
+  test('fonts: the default family, then the fallback family', () {
+    final asked = <String>[];
+    PdfFont? fonts(String family, {required bool bold, required bool italic}) {
+      asked.add(family);
+      return family == 'Fallback' ? StandardFont.courier : null;
+    }
+
+    final svg = SvgImage.parse(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="50"> '
+      '<text x="0" y="20">a</text> '
+      '<text x="0" y="40" font-family="Nope, \'Other One\'">b</text></svg>',
+      fonts: fonts,
+      defaultFontFamily: 'sans-serif',
+      fallbackFontFamily: 'Fallback',
+    );
+    final document = PdfDocument();
+    svg.paint(
+      document.addPage(const PdfRect(0, 0, 100, 50)).canvas,
+      const PdfRect(0, 0, 100, 50),
+    );
+    expect(asked, ['sans-serif', 'Fallback', 'Nope', 'Other One', 'Fallback']);
+  });
+
   late Directory dir;
   setUpAll(() => dir = Directory.systemTemp.createTempSync('libpdf.'));
   tearDownAll(() => dir.deleteSync(recursive: true));
