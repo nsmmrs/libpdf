@@ -543,6 +543,38 @@ void main() {
     }
   });
 
+  test('text slanted and emboldened from an upright, regular face', () {
+    final document = PdfDocument();
+    document.addPage(const PdfRect(0, 0, 300, 100)).canvas
+      ..setStrokeColor(const GrayColor(0))
+      ..text(
+        'slanted',
+        10,
+        50,
+        PdfTextStyle(StandardFont.helvetica, 20, skew: 0.2),
+      )
+      ..text(
+        'bold',
+        150,
+        50,
+        PdfTextStyle(StandardFont.helvetica, 20, embolden: 0.6),
+      );
+    final pdf = saved(document);
+    final qdf = run('qpdf', [
+      '--qdf',
+      '--object-streams=disable',
+      pdf.path,
+      '-',
+    ]);
+    expect(qdf, contains('1 0 0.2 1 10 50 Tm'));
+    expect(qdf, contains('q\nBT'));
+    expect(qdf, contains('0.6 w\n2 Tr'));
+    expect(qdf, contains('ET\nQ'));
+    // The text is still text.
+    final found = {for (final w in words(pdf)) w.text: w};
+    expect(found.keys, containsAll(['slanted', 'bold']));
+  });
+
   test('the open action and the page modes', () {
     final document = PdfDocument(
       pageMode: PageMode.fullScreen,

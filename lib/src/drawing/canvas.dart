@@ -142,6 +142,8 @@ final class PdfTextStyle {
     this.kerning = true,
     this.ligatures = false,
     this.features = const {},
+    this.skew = 0,
+    this.embolden = 0,
   });
 
   /// The font.
@@ -176,6 +178,15 @@ final class PdfTextStyle {
   /// capitals...).
   final Set<String> features;
 
+  /// How far the glyphs slant: the tangent of the angle (0.2, about 11
+  /// degrees, for an oblique face made from an upright one).
+  final double skew;
+
+  /// The width of a stroke around the glyphs, in points, in the current
+  /// stroke color (a bold face made from a regular one; set the stroke
+  /// color to the fill color).
+  final double embolden;
+
   /// This style with the values given changed.
   PdfTextStyle copyWith({
     PdfFont? font,
@@ -188,6 +199,8 @@ final class PdfTextStyle {
     bool? kerning,
     bool? ligatures,
     Set<String>? features,
+    double? skew,
+    double? embolden,
   }) => PdfTextStyle(
     font ?? this.font,
     size ?? this.size,
@@ -199,6 +212,8 @@ final class PdfTextStyle {
     kerning: kerning ?? this.kerning,
     ligatures: ligatures ?? this.ligatures,
     features: features ?? this.features,
+    skew: skew ?? this.skew,
+    embolden: embolden ?? this.embolden,
   );
 
   @override
@@ -213,6 +228,8 @@ final class PdfTextStyle {
       other.renderMode == renderMode &&
       other.kerning == kerning &&
       other.ligatures == ligatures &&
+      other.skew == skew &&
+      other.embolden == embolden &&
       other.features.length == features.length &&
       other.features.containsAll(features);
 
@@ -228,6 +245,8 @@ final class PdfTextStyle {
     kerning,
     ligatures,
     Object.hashAllUnordered(features),
+    skew,
+    embolden,
   );
 
   /// The width of [glyphs] set in this style, in points.
@@ -793,6 +812,9 @@ final class PdfCanvas {
     _noPath('text');
     final font = style.font;
     final fontName = _use('Font', font, FontResource(font), 'F');
+    final embolden = style.embolden > 0;
+    // The stroke's width stays with the text.
+    if (embolden) _op('q');
     _op('BT');
     _content
       ..add(PdfName(fontName).toBytes())
@@ -800,12 +822,20 @@ final class PdfCanvas {
     if (style.characterSpacing != 0) _op('Tc', [style.characterSpacing]);
     if (style.rise != 0) _op('Ts', [style.rise]);
     if (style.horizontalScaling != 100) _op('Tz', [style.horizontalScaling]);
-    if (style.renderMode != TextRenderMode.fill) {
+    if (embolden) {
+      _op('w', [style.embolden]);
+      _op('Tr', [TextRenderMode.fillStroke.index]);
+    } else if (style.renderMode != TextRenderMode.fill) {
       _op('Tr', [style.renderMode.index]);
     }
-    _op('Td', [x, y]);
+    if (style.skew != 0) {
+      _op('Tm', [1, 0, style.skew, 1, x, y]);
+    } else {
+      _op('Td', [x, y]);
+    }
     _content.add(_showText(glyphs, style));
     _op('ET');
+    if (embolden) _op('Q');
     return style.widthOf(glyphs);
   }
 

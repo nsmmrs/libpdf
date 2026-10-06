@@ -160,3 +160,6 @@
   of the next region, the content after it filling the room (a figure);
   `BoxStyle.floatBarrier` keeps a box (a heading) after the floating
   boxes waiting.
+- `PdfTextStyle.skew` and `PdfTextStyle.embolden`: text slanted (an
+  oblique face made from an upright one) and stroked (a bold face made
+  from a regular one).
