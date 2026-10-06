@@ -152,6 +152,61 @@ void main() {
     expect(result.anchors['line-7']!.page, 1);
   });
 
+  group('floating boxes', () {
+    // 80 points a region; lines of 10 after a gap of 3.
+    LayoutResult layout(List<LayoutBox> content) => FlowLayout(
+      template: const PageTemplate(
+        PdfRect(0, 0, 100, 100),
+        margins: EdgeInsets.all(10),
+      ),
+    ).layout(content);
+
+    const figure = CustomBox(
+      _Rigid(40),
+      style: BoxStyle(anchor: 'fig', floating: true),
+    );
+
+    test('that don\'t fit go to the next region, the text filling in', () {
+      final result = layout([
+        const CustomBox(_Lines(5, 0)),
+        figure,
+        const CustomBox(_Lines(2, 0, prefix: 'b')),
+      ]);
+      // 53 points of lines: the figure's 40 don't fit, the next 23 do.
+      expect(result.anchors['b-1']!.page, 0);
+      expect(result.anchors['fig']!.page, 1);
+      expect(result.anchors['fig']!.y, closeTo(90, 1e-6));
+      // Without floating, the figure and what follows move.
+      final fixed = layout([
+        const CustomBox(_Lines(5, 0)),
+        const CustomBox(_Rigid(40), style: BoxStyle(anchor: 'fig')),
+        const CustomBox(_Lines(2, 0, prefix: 'b')),
+      ]);
+      expect(fixed.anchors['b-0']!.page, 1);
+    });
+
+    test('are not passed by a barrier (a heading)', () {
+      final result = layout([
+        const CustomBox(_Lines(5, 0)),
+        figure,
+        const CustomBox(
+          _Fixed(5),
+          style: BoxStyle(anchor: 'heading', floatBarrier: true),
+        ),
+        const CustomBox(_Lines(1, 0, prefix: 'b')),
+      ]);
+      expect(result.anchors['fig']!.page, 1);
+      expect(result.anchors['heading']!.page, 1);
+      expect(result.anchors['heading']!.y, lessThan(result.anchors['fig']!.y));
+    });
+
+    test('are placed after the end of the content', () {
+      final result = layout([const CustomBox(_Lines(5, 0)), figure]);
+      expect(result.pageCount, 2);
+      expect(result.anchors['fig']!.page, 1);
+    });
+  });
+
   group('notes', () {
     // 80 points a region; lines of 10 after a gap of 3.
     LayoutResult layout(
@@ -805,6 +860,29 @@ final class _Fixed implements CustomContent {
     double available, {
     required bool atTop,
   }) => CustomPlacement(height: height, paint: (page, x, top) {});
+
+  @override
+  double minHeight(double width) => height;
+
+  @override
+  (double, double) intrinsicWidths() => (0, 0);
+}
+
+/// Custom content of a fixed height that moves on whole when it doesn't
+/// fit (an image).
+final class _Rigid implements CustomContent {
+  const new(this.height);
+
+  final double height;
+
+  @override
+  CustomPlacement? place(
+    double width,
+    double available, {
+    required bool atTop,
+  }) => height > available && !atTop
+      ? null
+      : CustomPlacement(height: height, paint: (page, x, top) {});
 
   @override
   double minHeight(double width) => height;

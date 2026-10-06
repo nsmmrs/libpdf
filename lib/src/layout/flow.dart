@@ -120,6 +120,8 @@ final class BoxStyle {
     this.marks = const {},
     this.decoration,
     this.tag,
+    this.floating = false,
+    this.floatBarrier = false,
   });
 
   /// The space outside the border.
@@ -158,6 +160,17 @@ final class BoxStyle {
   /// width, without its margins).
   final BoxDecoration? decoration;
 
+  /// Whether the box floats: when it doesn't fit where it is (and isn't
+  /// at the top of a region), it goes to the top of the next region and
+  /// the content after it fills the room (a figure). Not inside columns
+  /// or tables.
+  final bool floating;
+
+  /// Whether floating boxes waiting for the next region keep the box
+  /// from being placed before them (a section heading): it starts the
+  /// next region after them.
+  final bool floatBarrier;
+
   /// This style with [tag] ([BoxStyle.tag]).
   BoxStyle withTag(String? tag) => BoxStyle(
     margin: margin,
@@ -170,6 +183,8 @@ final class BoxStyle {
     marks: marks,
     decoration: decoration,
     tag: tag,
+    floating: floating,
+    floatBarrier: floatBarrier,
   );
 }
 
@@ -978,14 +993,20 @@ final class _Pass {
     final carried = <_Placed>[];
     // Notes deferred past the end of the content go on on pages of their
     // own.
-    while (rest != null || _deferredNotes != null) {
+    // Floating boxes that didn't fit, for the top of the next region.
+    final floats = <LayoutBox>[];
+    while (rest != null || _deferredNotes != null || floats.isNotEmpty) {
       final page = _newPage(template);
       if (!layout.keepTemplate) template = null;
       var discard = false;
       PageSide? side;
       for (final (i, region) in page.template.regions.indexed) {
         _regionHeight = region.height;
-        final content = rest ?? const BlockBox([]);
+        final content = floats.isEmpty
+            ? rest ?? const BlockBox([])
+            : BlockBox([...floats, ?rest]);
+        floats.clear();
+        _floatsWaiting = 0;
         var fit = _place(content, region.width, region.height, atTop: true);
         if (layout.notes.isNotEmpty || _deferredNotes != null) {
           final (withNotes, notes) = _notes(content, region, fit);
@@ -1001,7 +1022,8 @@ final class _Pass {
           page.placed.add((region, fit.placed));
         }
         rest = fit.rest;
-        if (rest == null && _deferredNotes == null) break;
+        floats.addAll(fit.floated);
+        if (rest == null && _deferredNotes == null && floats.isEmpty) break;
         if (fit.hit case BreakBox(
           kind: BreakKind.page,
           template: final name,
@@ -1093,6 +1115,7 @@ final class _Pass {
       // Notes taller than most of the region: as many as fit under what
       // is placed, the rest on the next region.
       if (room < region.height / 4) break;
+      _floatsWaiting = 0;
       fit = _place(content, width, room, atTop: true);
       notes = pending(fit);
     }
@@ -1205,8 +1228,12 @@ final class _Pass {
               null,
             ),
     BreakBox() => _Fit(const _PlacedSpace(0), 0, null, hit: box),
-    ColumnsBox() => _columns(box, width, available, atTop: atTop),
-    TableBox() => _table(box, width, available, atTop: atTop),
+    ColumnsBox() => _withoutFloats(
+      () => _columns(box, width, available, atTop: atTop),
+    ),
+    TableBox() => _withoutFloats(
+      () => _table(box, width, available, atTop: atTop),
+    ),
     CustomBox() => _custom(box, width, available, atTop: atTop),
   };
 
@@ -1270,10 +1297,14 @@ final class _Pass {
     final continued = box._continued;
     final bottom = style.padding.bottom + style.border.widths.bottom;
     final children = <(double, _Placed)>[];
+    final floated = <LayoutBox>[];
     var cursor = 0.0;
     final atTopInside = atTop && top == 0;
     _Fit split(List<LayoutBox> rest, {BreakBox? hit}) {
-      if (children.isEmpty && rest.length == box.children.length && !atTop) {
+      if (children.isEmpty &&
+          floated.isEmpty &&
+          rest.length == box.children.length &&
+          !atTop) {
         return _Fit.moved(box);
       }
       final placed = _PlacedBlock(
@@ -1292,6 +1323,7 @@ final class _Pass {
         placed.height,
         rest.isEmpty && hit == null ? null : BlockBox._rest(rest, style),
         hit: hit,
+        floated: floated,
       );
     }
 
@@ -1311,10 +1343,25 @@ final class _Pass {
         final rest = box.children.sublist(i + 1);
         return split(rest, hit: child);
       }
+      // A box no floating box may pass: after them, in the next region.
+      if (child.style.floatBarrier &&
+          !childAtTop &&
+          (floated.isNotEmpty || _floatsWaiting > 0)) {
+        return split(box.children.sublist(i));
+      }
       final fit = _place(child, inner, room - cursor, atTop: childAtTop);
+      if (fit.placed == null &&
+          child.style.floating &&
+          !childAtTop &&
+          _floatDepth == 0) {
+        floated.add(child);
+        _floatsWaiting++;
+        continue;
+      }
       if (fit.placed == null) {
         return split(box.children.sublist(i));
       }
+      floated.addAll(fit.floated);
       if (fit.rest == null &&
           fit.hit == null &&
           child.style.keepWithNext &&
@@ -1342,7 +1389,25 @@ final class _Pass {
       marks: continued ? const {} : style.marks,
       anchor: continued ? null : style.anchor,
     );
-    return _Fit(placed, placed.height, null);
+    return _Fit(placed, placed.height, null, floated: floated);
+  }
+
+  /// How many floating boxes wait for the next region in the placing
+  /// under way (for float barriers).
+  int _floatsWaiting = 0;
+
+  /// How deep the placing is in columns or tables, where boxes don't
+  /// float.
+  int _floatDepth = 0;
+
+  /// [place] with boxes not floating.
+  _Fit _withoutFloats(_Fit Function() place) {
+    _floatDepth++;
+    try {
+      return place();
+    } finally {
+      _floatDepth--;
+    }
   }
 
   /// The height of the region being filled (for keep rules).
@@ -2057,14 +2122,21 @@ final class _Pass {
 /// What placing a box gave: the placed part, its height, and the rest
 /// (null when all of it was placed).
 final class _Fit {
-  const new(this.placed, this.height, this.rest, {this.hit});
+  const new(
+    this.placed,
+    this.height,
+    this.rest, {
+    this.hit,
+    this.floated = const [],
+  });
 
   /// Nothing placed: all of [box] goes to the next region.
   const new moved(LayoutBox box)
     : placed = null,
       height = 0,
       rest = box,
-      hit = null;
+      hit = null,
+      floated = const [];
 
   final _Placed? placed;
   final double height;
@@ -2072,6 +2144,9 @@ final class _Fit {
 
   /// The forced break that ended the placing.
   final BreakBox? hit;
+
+  /// Floating boxes that didn't fit, for the top of the next region.
+  final List<LayoutBox> floated;
 }
 
 final class _Page {
