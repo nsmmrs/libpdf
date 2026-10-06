@@ -289,6 +289,55 @@ void main() {
     });
   });
 
+  group('a block split across regions', () {
+    // 80 points a region, its top at 90.
+    LayoutResult layout(List<LayoutBox> content) => FlowLayout(
+      template: const PageTemplate(
+        PdfRect(0, 0, 100, 100),
+        margins: EdgeInsets.all(10),
+      ),
+    ).layout(content);
+
+    BlockBox framed({required bool clone}) => BlockBox(
+      [
+        for (var i = 0; i < 5; i++)
+          CustomBox(_Rigid(25), style: BoxStyle(anchor: 'r$i')),
+      ],
+      style: BoxStyle(
+        padding: const EdgeInsets(top: 5, bottom: 5),
+        cloneEdges: clone,
+      ),
+    );
+
+    test('with cloneEdges has its padding on every piece', () {
+      final open = layout([framed(clone: false)]);
+      // The first piece: its top padding, then rows to the region's end.
+      expect(open.anchors['r2']!.page, 0);
+      expect(open.anchors['r3']!.page, 1);
+      expect(open.anchors['r3']!.y, closeTo(90, 1e-6));
+      final cloned = layout([framed(clone: true)]);
+      // Room for the bottom padding on the first page: a row less.
+      expect(cloned.anchors['r1']!.page, 0);
+      expect(cloned.anchors['r2']!.page, 1);
+      // The second piece starts below its own top padding.
+      expect(cloned.anchors['r2']!.y, closeTo(85, 1e-6));
+    });
+
+    test('that ends with a break carries nothing past it', () {
+      final result = layout([
+        BlockBox([
+          const CustomBox(_Rigid(10)),
+          const BreakBox.page(),
+        ], style: const BoxStyle(margin: EdgeInsets(bottom: 30))),
+        const CustomBox(_Rigid(10), style: BoxStyle(anchor: 'next')),
+      ]);
+      // The next box at the top of the next page: the margin is not
+      // carried over.
+      expect(result.anchors['next']!.page, 1);
+      expect(result.anchors['next']!.y, closeTo(90, 1e-6));
+    });
+  });
+
   group('a block aligned in its region', () {
     // 80 points a region, its top at 90.
     LayoutResult layout(List<LayoutBox> content) => FlowLayout(

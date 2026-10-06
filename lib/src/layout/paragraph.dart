@@ -427,6 +427,9 @@ final class KnuthPlassLineBreaker extends ItemLineBreaker {
   }
 }
 
+/// The letters at the start of a text.
+final RegExp _leadingLetters = RegExp(r'\p{Alphabetic}*', unicode: true);
+
 /// Typst's line breaking (typst-layout's `inline/linebreak.rs`, as of
 /// v0.14): the breaks that minimize the sum of the lines' costs, each line
 /// costing (1 + badness + penalty)². A line's badness is 100·|ratio|³,
@@ -435,7 +438,7 @@ final class KnuthPlassLineBreaker extends ItemLineBreaker {
 /// million rather than being refused. Ragged lines ([justify] false) may
 /// not shrink, and the last line (before a forced break) costs only what
 /// it shrinks. Penalties: a hyphenation [hyphenationCost] (15% more for
-/// each character closer than five to the word's edge), two lines in a
+/// letter closer than five to the word's edge), two lines in a
 /// row ending in a dash [hyphenationCost] more, a lone word on a line
 /// before a forced break (a runt) [runtCost]. A penalty item's own
 /// positive cost is added to its line's.
@@ -508,15 +511,24 @@ final class TypstLineBreaker extends ItemLineBreaker {
       final dash =
           hyphen ||
           (lastBox >= 0 && (items[lastBox] as BoxItem).text.endsWith('-'));
+      // The letters of the word on each side of a hyphenation (not the
+      // punctuation around it: Typst hyphenates "beyond" in “beyond”).
       double hyphenPenalty() {
-        var left = 0;
+        final before = StringBuffer();
         for (var k = i - 1; k >= 0 && items[k] is! GlueItem; k--) {
-          if (items[k] case BoxItem(:final text)) left += text.runes.length;
+          if (items[k] case BoxItem(:final text)) {
+            before.write(String.fromCharCodes(text.runes.toList().reversed));
+          }
         }
-        var right = 0;
+        final after = StringBuffer();
         for (var k = i + 1; k < n && items[k] is! GlueItem; k++) {
-          if (items[k] case BoxItem(:final text)) right += text.runes.length;
+          if (items[k] case BoxItem(:final text)) after.write(text);
         }
+        int letters(String text) =>
+            _leadingLetters.matchAsPrefix(text)?[0]?.runes.length ?? 0;
+        // (Counted in code points.)
+        final left = letters(before.toString());
+        final right = letters(after.toString());
         final steps = math.max(0, 5 - left) + math.max(0, 5 - right);
         return (1 + 0.15 * steps) * hyphenationCost;
       }

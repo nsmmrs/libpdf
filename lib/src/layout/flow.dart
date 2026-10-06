@@ -123,6 +123,7 @@ final class BoxStyle {
     this.float,
     this.floatBarrier = false,
     this.verticalAlign,
+    this.cloneEdges = false,
   });
 
   /// The space outside the border.
@@ -182,6 +183,12 @@ final class BoxStyle {
   /// bottom (a dedication alone on its page). Blocks only.
   final VerticalAlign? verticalAlign;
 
+  /// Whether each piece of a block split across regions has the block's
+  /// padding and border at its top and bottom (CSS's `box-decoration-break:
+  /// clone`, as Typst's breakable blocks have their inset), rather than
+  /// the first piece alone at its top and the last at its bottom.
+  final bool cloneEdges;
+
   /// This style with [tag] ([BoxStyle.tag]).
   BoxStyle withTag(String? tag) => BoxStyle(
     margin: margin,
@@ -197,6 +204,7 @@ final class BoxStyle {
     float: float,
     floatBarrier: floatBarrier,
     verticalAlign: verticalAlign,
+    cloneEdges: cloneEdges,
   );
 
   /// This style without floating.
@@ -213,6 +221,7 @@ final class BoxStyle {
     tag: tag,
     floatBarrier: floatBarrier,
     verticalAlign: verticalAlign,
+    cloneEdges: cloneEdges,
   );
 
   /// This style with the room above the block as its top margin (where
@@ -234,6 +243,7 @@ final class BoxStyle {
     tag: tag,
     float: float,
     floatBarrier: floatBarrier,
+    cloneEdges: cloneEdges,
   );
 }
 
@@ -1424,9 +1434,10 @@ final class _Pass {
   }) {
     final style = box.style;
     final continued = box._continued;
+    final clone = style.cloneEdges;
     final top =
         (atTop || continued ? 0.0 : style.margin.top) +
-        (continued ? 0 : style.border.widths.top + style.padding.top);
+        (continued && !clone ? 0 : style.border.widths.top + style.padding.top);
     final bottom = style.padding.bottom + style.border.widths.bottom;
     final inner =
         width -
@@ -1468,9 +1479,11 @@ final class _Pass {
     // it reserves no room for them, they need room only below its last
     // child (if they don't fit there, the block is placed again with room
     // for them throughout).
-    final full = available - top;
+    // (A block whose pieces each close reserves the room throughout.)
+    final full = available - top - (clone ? bottom : 0);
     final fit = _blockChildren(box, width, inner, full, top, atTop: atTop);
-    if (fit.rest == null &&
+    if (!clone &&
+        fit.rest == null &&
         fit.hit == null &&
         bottom > 0 &&
         fit.height - style.margin.bottom > available + 1e-6) {
@@ -1514,7 +1527,7 @@ final class _Pass {
       final placed = _PlacedBlock(
         style,
         width,
-        top + cursor,
+        top + cursor + (style.cloneEdges ? bottom : 0),
         children,
         top: atTop || continued ? 0 : style.margin.top,
         openTop: continued,
@@ -1525,7 +1538,9 @@ final class _Pass {
       return _Fit(
         placed,
         placed.height,
-        rest.isEmpty && hit == null ? null : BlockBox._rest(rest, style),
+        // A box that ends with a break ends there: nothing of it (not
+        // its bottom margin) is carried past the break.
+        rest.isEmpty ? null : BlockBox._rest(rest, style),
         hit: hit,
         floated: floated,
         pinned: pinned,
@@ -2482,8 +2497,14 @@ final class _PlacedBlock extends _Placed {
   final Map<String, String> marks;
   final String? anchor;
 
+  /// Whether the piece has the block's top and bottom edges (padding and
+  /// border): the first and last piece's, or every piece's with
+  /// [BoxStyle.cloneEdges].
+  bool get _topEdge => !openTop || style.cloneEdges;
+  bool get _bottomEdge => !openBottom || style.cloneEdges;
+
   double get _contentTop =>
-      top + (openTop ? 0 : style.border.widths.top + style.padding.top);
+      top + (_topEdge ? style.border.widths.top + style.padding.top : 0);
 
   double get _contentLeft =>
       style.margin.left + style.border.widths.left + style.padding.left;
@@ -2526,8 +2547,8 @@ final class _PlacedBlock extends _Placed {
         border.widths.top == border.widths.left &&
         border.widths.left == border.widths.right &&
         border.widths.right == border.widths.bottom &&
-        !openTop &&
-        !openBottom;
+        _topEdge &&
+        _bottomEdge;
     if (style.background case final background?) {
       canvas
         ..save()
@@ -2572,10 +2593,10 @@ final class _PlacedBlock extends _Placed {
         }
 
         final PdfRect(left: l, bottom: b, right: r, top: t) = rect;
-        if (!openTop) {
+        if (_topEdge) {
           side(widths.top, l, t - widths.top / 2, r, t - widths.top / 2);
         }
-        if (!openBottom) {
+        if (_bottomEdge) {
           side(
             widths.bottom,
             l,
@@ -2592,8 +2613,8 @@ final class _PlacedBlock extends _Placed {
     style.decoration?.call(
       painter.page,
       rect,
-      first: !openTop,
-      last: !openBottom,
+      first: _topEdge,
+      last: _bottomEdge,
     );
     for (final (offset, child) in children) {
       child.paint(painter, x + _contentLeft, top - _contentTop - offset);
