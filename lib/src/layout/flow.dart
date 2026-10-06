@@ -1323,6 +1323,22 @@ final class _Pass {
     );
   }
 
+  /// The space the last of [children] leaves below the content: its
+  /// margin below (and, through a block with nothing closing it, its own
+  /// last child's), or a spacer's height.
+  double _trailingSpace(List<LayoutBox> children) {
+    if (children.isEmpty) return 0;
+    final last = children.last;
+    return switch (last) {
+      SpacerBox(:final height) =>
+        height + _trailingSpace(children.sublist(0, children.length - 1)),
+      BlockBox(:final children, :final style)
+          when style.padding.bottom == 0 && style.border.widths.bottom == 0 =>
+        style.margin.bottom + _trailingSpace(children),
+      _ => last.style.margin.bottom,
+    };
+  }
+
   /// The height of [box] laid out with no limit.
   double _measure(LayoutBox box, double width) =>
       _place(box, width, double.infinity, atTop: false).height;
@@ -1423,10 +1439,12 @@ final class _Pass {
             atTop &&
             !continued &&
             available.isFinite) {
-      // (Its margin below is outside it.)
+      // (Its margin below is outside it, and the space its last child
+      // leaves below, as Typst drops the spacing at a container's end.)
       final whole =
           _measure(BlockBox(box.children, style: style._lowered(0)), width) -
-          style.margin.bottom;
+          style.margin.bottom -
+          _trailingSpace(box.children);
       if (whole < available) {
         final room =
             (available - whole) * (align == VerticalAlign.middle ? .5 : 1);
