@@ -1471,6 +1471,25 @@ final class _Pass {
             style.border.widths.top +
             style.padding.top +
             (children.isEmpty ? 0 : _minHeight(children.first, inner));
+      // A table splits after its first row (its header repeated): that
+      // much of it, unless it is kept together.
+      case TableBox(:final rows, :final headerRows)
+          when box._grid == null &&
+              !box.style.keepTogether &&
+              rows.length > headerRows + 1:
+        return _measure(
+          TableBox(
+            rows.sublist(0, headerRows + 1),
+            columns: box.columns,
+            headerRows: headerRows,
+            width: box.width,
+            shrinkToContent: box.shrinkToContent,
+            align: box.align,
+            stripes: box.stripes,
+            style: box.style,
+          ),
+          width,
+        );
       case ImageBox() || DrawingBox() || TableBox():
         return _measure(box, width);
       case CustomBox(:final content):

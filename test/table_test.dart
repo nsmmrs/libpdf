@@ -230,6 +230,25 @@ void main() {
     ]);
   });
 
+  test('a caption kept with a long table stays with its first rows', () {
+    final (pdf, _) = render([
+      ParagraphBox(Paragraph([TextRun('Lead', body)])),
+      ParagraphBox(
+        Paragraph([TextRun('Caption', body)]),
+        style: const BoxStyle(keepWithNext: true),
+      ),
+      TableBox(
+        [
+          for (var i = 0; i < 60; i++) row([cell('r$i')]),
+        ],
+        columns: const [ColumnWidth.fraction(1)],
+      ),
+    ]);
+    final all = words(pdf);
+    expect(word(all, 'Caption').page, 1);
+    expect(word(all, 'r0').page, 1);
+  });
+
   test('a row taller than a page splits its cells', () {
     final tall = List.generate(12, (i) => 'L${i + 1}').join('\n');
     final (pdf, result) = render([
