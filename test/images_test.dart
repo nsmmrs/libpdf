@@ -313,6 +313,31 @@ void main() {
     expect(pdf, isNot(contains('/FlateDecode')));
   });
 
+  test('a payload encoded elsewhere writes the same bytes', () {
+    for (final name in ['basn6a08', 'basi0g08', 'tbbn3p08']) {
+      List<int> bytes() =>
+          File('test/images/pngsuite/$name.png').readAsBytesSync();
+      final image = PngImage.parse(Uint8List.fromList(bytes()));
+      expect(image.reencodes, isTrue, reason: name);
+      const options = PdfWriterOptions(deterministic: true);
+      final reference = imagePdf(image, options: options);
+      final other = PngImage.parse(Uint8List.fromList(bytes()))
+        ..payload = PngImage.parse(Uint8List.fromList(bytes())).encode(options);
+      expect(imagePdf(other, options: options), reference, reason: name);
+      // A payload for other compression isn't used.
+      final stale = PngImage.parse(Uint8List.fromList(bytes()))
+        ..payload = PngImage.parse(Uint8List.fromList(bytes()))
+            .encode(const PdfWriterOptions(compress: false));
+      expect(imagePdf(stale, options: options), reference, reason: name);
+    }
+    expect(
+      PngImage.parse(
+        File('test/images/pngsuite/basn2c08.png').readAsBytesSync(),
+      ).reencodes,
+      isFalse,
+    );
+  });
+
   test('anything else is not an image', () {
     expect(
       () => PdfImage.parse(Uint8List.fromList(ascii.encode('GIF89a'))),

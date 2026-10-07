@@ -47,7 +47,13 @@ export 'src/fonts/fonts.dart'
     show EmbeddedFont, PdfFont, ShapedGlyph, StandardFont;
 export 'src/fonts/opentype.dart' show FontFormatException, OpenTypeFont;
 export 'src/images/images.dart'
-    show ImageFormatException, JpegImage, PdfImage, PngColorType, PngImage;
+    show
+        ImageFormatException,
+        JpegImage,
+        PdfImage,
+        PngColorType,
+        PngImage,
+        PngPayload;
 export 'src/layout/flow.dart'
     show
         AnchorPosition,

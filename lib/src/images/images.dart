@@ -241,6 +241,17 @@ enum PngColorType {
   };
 }
 
+/// A PNG image's samples encoded for writing (see [PngImage.encode]): the
+/// compression they were encoded with, the color's stream data and the
+/// alpha's (null for an opaque image), and the alpha's depth.
+typedef PngPayload = ({
+  bool compress,
+  int level,
+  Uint8List color,
+  Uint8List? alpha,
+  int alphaDepth,
+});
+
 /// A PNG image.
 final class PngImage extends PdfImage {
   new _({
@@ -394,6 +405,55 @@ final class PngImage extends PdfImage {
       !colorType.hasAlpha &&
       !(colorType == PngColorType.palette && transparency != null);
 
+  /// Whether writing the image encodes its samples again (it is
+  /// interlaced, or has alpha to split out): the work [encode] does.
+  bool get reencodes => !_passThrough;
+
+  /// The samples as writing the image with [options] encodes them, when
+  /// it [reencodes]: the color's stream data, and the alpha's (null when
+  /// the image is opaque). Plain data, computed anywhere (another isolate,
+  /// say) and handed back as [payload].
+  PngPayload encode(PdfWriterOptions options) {
+    final colorChannels = colorType.hasAlpha
+        ? colorType.channels - 1
+        : colorType.channels;
+    final layout = PngLayout(width, height, colorType.channels, bitDepth);
+    final pixels = unfilterImage(
+      options.decodeZlib(data),
+      layout,
+      interlaced: interlaced,
+    );
+    final Uint8List color;
+    final Uint8List? alpha;
+    final int alphaDepth;
+    if (colorType.hasAlpha) {
+      (color, alpha) = _splitAlpha(pixels, colorChannels);
+      alphaDepth = bitDepth;
+    } else if (colorType == PngColorType.palette && transparency != null) {
+      color = pixels;
+      alpha = _paletteAlpha(pixels, layout.rowBytes(width));
+      alphaDepth = 8;
+    } else {
+      color = pixels;
+      alpha = null;
+      alphaDepth = 8;
+    }
+    return (
+      compress: options.compress,
+      level: options.compressionLevel,
+      color: _encodedSamples(options, color, bitDepth, colorChannels),
+      alpha: alpha == null || alpha.every((b) => b == 0xff)
+          ? null
+          : _encodedSamples(options, alpha, alphaDepth, 1),
+      alphaDepth: alphaDepth,
+    );
+  }
+
+  /// The samples encoded elsewhere (see [encode]), used when the image is
+  /// written with the same compression (and the same zlib codec, which
+  /// the caller sees to).
+  PngPayload? payload;
+
   @override
   void writeTo(PdfWriter writer) {
     final colorChannels = colorType.hasAlpha
@@ -414,47 +474,35 @@ final class PngImage extends PdfImage {
       );
       return;
     }
-    final layout = PngLayout(width, height, colorType.channels, bitDepth);
-    final pixels = unfilterImage(
-      writer.options.decodeZlib(data),
-      layout,
-      interlaced: interlaced,
-    );
-    final Uint8List color;
-    final Uint8List? alpha;
-    final int alphaDepth;
-    if (colorType.hasAlpha) {
-      (color, alpha) = _splitAlpha(pixels, colorChannels);
-      alphaDepth = bitDepth;
-    } else if (colorType == PngColorType.palette && transparency != null) {
-      color = pixels;
-      alpha = _paletteAlpha(pixels, layout.rowBytes(width));
-      alphaDepth = 8;
-    } else {
-      color = pixels;
-      alpha = null;
-      alphaDepth = 8;
-    }
-    final softMask = alpha == null || alpha.every((b) => b == 0xff)
-        ? null
-        : writer.write(
-            _encoded(
-              writer,
-              alpha,
-              const PdfName('DeviceGray'),
-              alphaDepth,
-              channels: 1,
-            ),
-          );
+    final options = writer.options;
+    final encoded = switch (payload) {
+      final payload?
+          when payload.compress == options.compress &&
+              payload.level == options.compressionLevel =>
+        payload,
+      _ => encode(options),
+    };
+    final softMask = switch (encoded.alpha) {
+      final alpha? => writer.write(
+        _image(
+          alpha,
+          const PdfName('DeviceGray'),
+          encoded.alphaDepth,
+          predictor: options.compress ? (1, encoded.alphaDepth) : null,
+          compress: options.compress,
+        ),
+      ),
+      null => null,
+    };
     writer.write(
-      _encoded(
-        writer,
-        color,
+      _image(
+        encoded.color,
         colorSpace,
         bitDepth,
-        channels: colorChannels,
+        predictor: options.compress ? (colorChannels, bitDepth) : null,
         mask: mask,
         softMask: softMask,
+        compress: options.compress,
       ),
       reference(writer),
     );
@@ -546,40 +594,18 @@ final class PngImage extends PdfImage {
     return alpha;
   }
 
-  /// Decoded [samples] as an image stream: filtered and compressed (with
-  /// a PNG predictor) when the writer compresses.
-  PdfStream _encoded(
-    PdfWriter writer,
+  /// Decoded [samples] as image stream data: filtered and compressed (for
+  /// a PNG predictor) when [options] compress.
+  Uint8List _encodedSamples(
+    PdfWriterOptions options,
     Uint8List samples,
-    PdfObject colorSpace,
-    int depth, {
-    required int channels,
-    PdfArray? mask,
-    PdfRef? softMask,
-  }) {
-    if (!writer.options.compress) {
-      return _image(
-        samples,
-        colorSpace,
-        depth,
-        mask: mask,
-        softMask: softMask,
-        compress: false,
-      );
-    }
+    int depth,
+    int channels,
+  ) {
+    if (!options.compress) return samples;
     final layout = PngLayout(width, height, channels, depth);
-    final filtered = filterImage(
-      samples,
-      layout.rowBytes(width),
-      layout.pixelBytes,
-    );
-    return _image(
-      writer.options.encodeZlib(filtered),
-      colorSpace,
-      depth,
-      predictor: (channels, depth),
-      mask: mask,
-      softMask: softMask,
+    return options.encodeZlib(
+      filterImage(samples, layout.rowBytes(width), layout.pixelBytes),
     );
   }
 
