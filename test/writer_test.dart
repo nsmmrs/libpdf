@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:libpdf/libpdf.dart';
+import 'package:libpdf/src/writer.dart' show xmpPacket;
 import 'package:test/test.dart';
 
 /// A one-page document with [text] in Helvetica, written with [options].
@@ -123,6 +124,35 @@ void main() {
       ..reserve()
       ..write(PdfDict(), root);
     expect(() => writer.close(root: root), throwsStateError);
+  });
+
+  test('XMP metadata: an identifier, contributors and rights', () {
+    final xmp = xmpPacket(
+      const PdfInfo(
+        title: 'Book',
+        identifier: 'urn:isbn:9780000000000',
+        contributors: ['Ed One', 'Ed & Two'],
+        rights: '© 2026 Ann',
+      ),
+      DateTime.utc(2026),
+    );
+    expect(
+      xmp,
+      contains('<dc:identifier>urn:isbn:9780000000000</dc:identifier>'),
+    );
+    expect(
+      xmp,
+      contains(
+        '<dc:contributor><rdf:Bag><rdf:li>Ed One</rdf:li><rdf:li>Ed &amp; '
+        'Two</rdf:li></rdf:Bag></dc:contributor>',
+      ),
+    );
+    expect(xmp, contains('<rdf:li xml:lang="x-default">© 2026 Ann</rdf:li>'));
+    // Without them, nothing.
+    expect(
+      xmpPacket(const PdfInfo(title: 'Book'), DateTime.utc(2026)),
+      isNot(contains('dc:identifier')),
+    );
   });
 
   test('PDF dates', () {

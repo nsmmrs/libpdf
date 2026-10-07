@@ -55,6 +55,9 @@ final class PdfInfo {
     this.producer,
     this.trapped,
     this.pdfxVersion,
+    this.identifier,
+    this.contributors = const [],
+    this.rights,
   });
 
   /// The title.
@@ -82,6 +85,18 @@ final class PdfInfo {
   /// The PDF/X version the document conforms to (`PDF/X-4`), written as
   /// `GTS_PDFXVersion` in the information and the XMP metadata.
   final String? pdfxVersion;
+
+  /// An identifier of the work (`urn:isbn:9780000000000`), written as the
+  /// XMP metadata's `dc:identifier` (the information dictionary has no
+  /// key for it).
+  final String? identifier;
+
+  /// Contributors other than the authors (editors, translators), the XMP
+  /// metadata's `dc:contributor`.
+  final List<String> contributors;
+
+  /// The rights statement (a copyright), the XMP metadata's `dc:rights`.
+  final String? rights;
 }
 
 /// Writes a PDF file to a sink.
@@ -415,6 +430,22 @@ String xmpPacket(PdfInfo info, DateTime date) {
   }
   if (info.keywords case final keywords?) {
     out.write('<pdf:Keywords>${escape(keywords)}</pdf:Keywords>\n');
+  }
+  if (info.identifier case final identifier?) {
+    out.write('<dc:identifier>${escape(identifier)}</dc:identifier>\n');
+  }
+  if (info.contributors.isNotEmpty) {
+    out.write('<dc:contributor><rdf:Bag>');
+    for (final contributor in info.contributors) {
+      out.write('<rdf:li>${escape(contributor)}</rdf:li>');
+    }
+    out.write('</rdf:Bag></dc:contributor>\n');
+  }
+  if (info.rights case final rights?) {
+    out.write(
+      '<dc:rights><rdf:Alt><rdf:li xml:lang="x-default">${escape(rights)}'
+      '</rdf:li></rdf:Alt></dc:rights>\n',
+    );
   }
   if (info.producer case final producer?) {
     out.write('<pdf:Producer>${escape(producer)}</pdf:Producer>\n');
