@@ -141,6 +141,32 @@ void main() {
     return;
   }
 
+  test('a content stream encoded elsewhere writes the same bytes', () {
+    const options = PdfWriterOptions(deterministic: true);
+    Uint8List save({bool payload = false, bool tiny = false}) {
+      final document = PdfDocument();
+      final page = document.addPage(const PdfRect(0, 0, 200, 200));
+      if (tiny) {
+        page.canvas
+          ..rect(const PdfRect(1, 1, 2, 2))
+          ..fill();
+      } else {
+        for (var i = 0; i < 50; i++) {
+          page.canvas
+            ..rect(PdfRect(i.toDouble(), i.toDouble(), 10, 10))
+            ..fill();
+        }
+      }
+      if (payload) page.contentPayload = encodeStream(page.content, options);
+      return document.save(options: options);
+    }
+
+    expect(save(payload: true), save());
+    // (Stored as it is: compressing doesn't make it shorter.)
+    expect(encodeStream(Uint8List(3), options).data, isNull);
+    expect(save(payload: true, tiny: true), save(tiny: true));
+  });
+
   test('paths are filled and stroked', () {
     final pdf = saved(
       page((c) {

@@ -17,6 +17,31 @@ import 'package:libpdf/src/reader/reader.dart';
 import 'package:libpdf/src/writer.dart';
 import 'package:meta/meta.dart';
 
+/// A stream's data as the writer stores it (see [encodeStream]): the
+/// compression it was encoded with, the data's length, and the
+/// compressed data (null when compressing doesn't make it shorter, and
+/// the data is stored as it is).
+typedef StreamPayload = ({
+  bool compress,
+  int level,
+  int length,
+  Uint8List? data,
+});
+
+/// [data] encoded as a writer with [options] stores a stream of it:
+/// compressed when that is shorter. Plain data, computed anywhere.
+StreamPayload encodeStream(Uint8List data, PdfWriterOptions options) {
+  final compressed = options.compress ? options.encodeZlib(data) : null;
+  return (
+    compress: options.compress,
+    level: options.compressionLevel,
+    length: data.length,
+    data: compressed != null && compressed.length < data.length
+        ? compressed
+        : null,
+  );
+}
+
 /// A page: its boxes, its content and its links.
 final class PdfPage {
   new _(
@@ -48,6 +73,14 @@ final class PdfPage {
 
   /// The page's content.
   final PdfCanvas canvas = newCanvas();
+
+  /// The content stream's data, as painted so far.
+  Uint8List get content => canvasContent(canvas);
+
+  /// The content stream as [encodeStream] encoded it elsewhere (another
+  /// isolate, say), used when the page is written with the same
+  /// compression and its content is as long as it was.
+  StreamPayload? contentPayload;
 
   final List<(PdfRect, LinkTarget)> _links = [];
 
@@ -626,7 +659,23 @@ final class _Saver {
   }
 
   void _writePage(PdfPage page, PdfRef parent) {
-    final content = writer.write(PdfStream(canvasContent(page.canvas)));
+    final data = canvasContent(page.canvas);
+    final options = writer.options;
+    final content = writer.write(switch (page.contentPayload) {
+      (:final compress, :final level, :final length, data: final encoded)
+          when compress &&
+              options.compress &&
+              level == options.compressionLevel &&
+              length == data.length =>
+        encoded == null
+            ? PdfStream(data, compress: false)
+            : PdfStream(
+                encoded,
+                dict: PdfDict({'Filter': const PdfName('FlateDecode')}),
+                compress: false,
+              ),
+      _ => PdfStream(data),
+    });
     final annotations = [
       for (final (rect, target) in page._links)
         writer.write(

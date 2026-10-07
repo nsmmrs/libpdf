@@ -36,8 +36,10 @@ export 'src/drawing/document.dart'
         PdfOutlineItem,
         PdfOutputIntent,
         PdfPage,
+        StreamPayload,
         UriTarget,
-        XyzDestination;
+        XyzDestination,
+        encodeStream;
 export 'src/drawing/geometry.dart' show PdfMatrix, PdfRect;
 export 'src/drawing/graphic.dart' show Graphic;
 export 'src/drawing/shading.dart'
