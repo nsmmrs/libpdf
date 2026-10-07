@@ -305,6 +305,20 @@ void main() {
       expect(result.anchors['b-3']!.y, greaterThan(50));
     });
 
+    test('wait when the text before them goes on in the next region', () {
+      // 80 points: a block of 60 that splits once a figure of 30 is set
+      // at the bottom, the figure after it: the figure waits.
+      final result = layout([
+        const CustomBox(_Lines(5, 0)),
+        const CustomBox(
+          _Rigid(30),
+          style: BoxStyle(anchor: 'fig', float: FloatPlacement.bottom),
+        ),
+      ]);
+      expect(result.anchors['line-4']!.page, 0);
+      expect(result.anchors['fig']!.page, 1);
+    });
+
     test('keep their clearance from the text', () {
       LayoutResult at(double clearance) => layout([
         const CustomBox(_Lines(2, 0)),

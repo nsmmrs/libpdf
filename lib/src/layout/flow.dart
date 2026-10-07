@@ -1111,6 +1111,7 @@ final class _Pass {
               ]);
         floats.clear();
         _floatsWaiting = 0;
+        _floatsNotHere.clear();
         final reserved = waitingBottom.isEmpty
             ? 0.0
             : _measure(BlockBox(waitingBottom), region.width);
@@ -1308,6 +1309,21 @@ final class _Pass {
     List<LayoutBox> bottom,
   ) {
     var fit = first;
+    // The floating boxes pinned here, with what each added to its edge.
+    final pinned = <LayoutBox, List<LayoutBox>>{};
+    double measured(List<LayoutBox> boxes) =>
+        boxes.isEmpty ? 0 : _measure(BlockBox(boxes), region.width);
+    void place() {
+      _floatsWaiting = 0;
+      _floatsReached.clear();
+      fit = _place(
+        content,
+        region.width,
+        region.height - measured(top) - measured(bottom),
+        atTop: true,
+      );
+    }
+
     for (var attempt = 0; attempt < 4 && fit.pinned.isNotEmpty; attempt++) {
       var added = false;
       for (final (box, y, height) in fit.pinned) {
@@ -1318,18 +1334,30 @@ final class _Pass {
           FloatPlacement.bottom => false,
           _ => y + height / 2 < region.height / 2,
         };
-        (atTop ? top : bottom).addAll(_cleared(box, top: atTop));
+        final cleared = _cleared(box, top: atTop);
+        (atTop ? top : bottom).addAll(cleared);
+        pinned[box] = cleared;
       }
       if (!added) break;
-      double measured(List<LayoutBox> boxes) =>
-          boxes.isEmpty ? 0 : _measure(BlockBox(boxes), region.width);
-      _floatsWaiting = 0;
-      fit = _place(
-        content,
-        region.width,
-        region.height - measured(top) - measured(bottom),
-        atTop: true,
-      );
+      place();
+      // A box the content no longer reaches in the room left (the text
+      // before it now goes on in the next region): it waits for the next
+      // region, as Typst places a float only where its text is.
+      final unreached = [
+        for (final box in pinned.keys)
+          if (!_floatsReached.contains(box)) box,
+      ];
+      if (unreached.isNotEmpty) {
+        for (final box in unreached) {
+          for (final piece in pinned.remove(box)!) {
+            top.remove(piece);
+            bottom.remove(piece);
+          }
+          _floatsSet.remove(box);
+          _floatsNotHere.add(box);
+        }
+        place();
+      }
     }
     return fit;
   }
@@ -1596,7 +1624,10 @@ final class _Pass {
     for (var i = 0; i < box.children.length; i++) {
       final child = box.children[i];
       // A floating box set at the top or bottom of a region already.
-      if (_floatsSet.contains(child)) continue;
+      if (_floatsSet.contains(child)) {
+        _floatsReached.add(child);
+        continue;
+      }
       final childAtTop = atTopInside && cursor == 0;
       if (child is BreakBox) {
         // With floating boxes waiting, the break comes after them: the
@@ -1621,6 +1652,13 @@ final class _Pass {
           !childAtTop &&
           (floated.isNotEmpty || _floatsWaiting > 0)) {
         return split(box.children.sublist(i));
+      }
+      // A floating box this region's text no longer reaches (see
+      // [_pinFloats]): for the next region.
+      if (_floatsNotHere.contains(child) && _floatDepth == 0) {
+        floated.add(child);
+        _floatsWaiting++;
+        continue;
       }
       final fit = _place(child, inner, room - cursor, atTop: childAtTop);
       if (fit.placed == null &&
@@ -1725,6 +1763,14 @@ final class _Pass {
   /// How many floating boxes wait for the next region in the placing
   /// under way (for float barriers).
   int _floatsWaiting = 0;
+
+  /// The floating boxes set at a region's edge that the last placing of
+  /// the content came to (passed over in the flow).
+  final Set<LayoutBox> _floatsReached = Set.identity();
+
+  /// The floating boxes that wait for the next region: the text before
+  /// them goes on there.
+  final Set<LayoutBox> _floatsNotHere = Set.identity();
 
   /// How deep the placing is in columns or tables, where boxes don't
   /// float.

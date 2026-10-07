@@ -482,7 +482,10 @@ final class TypstLineBreaker extends ItemLineBreaker {
           stretch[i] + (item is GlueItem && !infinite ? item.stretch : 0);
       shrink[i + 1] = shrink[i] + (item is GlueItem ? item.shrink : 0);
       fills[i + 1] = fills[i] + (infinite ? 1 : 0);
-      spaces[i + 1] = spaces[i] + (item is GlueItem && !infinite ? 1 : 0);
+      // (Justifiable spaces: not a fixed space, which never stretches.)
+      spaces[i + 1] =
+          spaces[i] +
+          (item is GlueItem && !infinite && item.stretch > 0 ? 1 : 0);
     }
     bool candidate(int i) => switch (items[i]) {
       PenaltyItem(:final penalty) => penalty < PenaltyItem.never,
