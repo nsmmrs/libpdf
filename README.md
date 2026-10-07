@@ -25,7 +25,9 @@ Layers, each public and usable alone:
 Fonts: the 14 standard fonts with their metrics and kerning, and OpenType
 fonts (TrueType and CFF outlines, or the WOFF and WOFF2 web fonts that wrap
 them) embedded as subsets, with kerning, `liga` ligatures and a ToUnicode
-map so text stays extractable. Images: JPEG,
+map so text stays extractable. Reading and subsetting fonts is the
+[fonts](https://github.com/nsmmrs/fonts) package's work, and compression
+the [compression](https://github.com/nsmmrs/compression) package's. Images: JPEG,
 PNG of every kind, and SVG (drawn as vector graphics).
 
 The examples in [`example/`](example) make a one-page hello world, a
@@ -60,6 +62,4 @@ Status: in development; not published to pub.dev. See
 
 ## License
 
-MIT; see [LICENSE](LICENSE). The Brotli dictionary and transforms in
-`lib/src/fonts/brotli_data.g.dart` are google/brotli's (MIT; its notice is
-in the file).
+MIT; see [LICENSE](LICENSE).

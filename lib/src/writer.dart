@@ -6,7 +6,7 @@ library;
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:libpdf/src/flate.dart';
+import 'package:compression/compression.dart';
 import 'package:libpdf/src/md5.dart';
 import 'package:libpdf/src/objects.dart';
 

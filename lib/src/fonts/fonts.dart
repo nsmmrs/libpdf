@@ -5,12 +5,10 @@ library;
 
 import 'dart:convert';
 
-import 'package:libpdf/src/fonts/cff.dart';
+import 'package:fonts/fonts.dart';
 import 'package:libpdf/src/fonts/encoding.dart';
-import 'package:libpdf/src/fonts/opentype.dart';
 import 'package:libpdf/src/fonts/standard_metrics.dart';
 import 'package:libpdf/src/fonts/standard_metrics.g.dart';
-import 'package:libpdf/src/fonts/subset.dart';
 import 'package:libpdf/src/md5.dart';
 import 'package:libpdf/src/objects.dart';
 import 'package:libpdf/src/writer.dart';

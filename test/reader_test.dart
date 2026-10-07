@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:compression/compression.dart' show zlibEncode;
 import 'package:libpdf/libpdf.dart';
 import 'package:libpdf/src/reader/filters.dart';
 import 'package:test/test.dart';

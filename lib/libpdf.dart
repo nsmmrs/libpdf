@@ -1,11 +1,15 @@
 /// libpdf: a pure-Dart PDF library written from ISO 32000.
 ///
-/// The object layer: the PDF object model (`PdfObject` and its kinds),
-/// Flate compression, and a `PdfWriter` that writes a file with
-/// cross-reference tables or streams. Fonts (`PdfFont`) and images
+/// The object layer: the PDF object model (`PdfObject` and its kinds) and
+/// a `PdfWriter` that writes a file with cross-reference tables or
+/// streams (compressed by the compression package). Fonts (`PdfFont`, read
+/// by the fonts package) and images
 /// (`PdfImage`). The drawing layer: a `PdfDocument` of pages drawn on
 /// `PdfCanvas`es, with links, destinations, outlines and page labels.
 library;
+
+// The font types libpdf's API uses (the fonts package has the rest).
+export 'package:fonts/fonts.dart' show FontFormatException, OpenTypeFont;
 
 export 'src/drawing/canvas.dart'
     show
@@ -44,12 +48,8 @@ export 'src/drawing/geometry.dart' show PdfMatrix, PdfRect;
 export 'src/drawing/graphic.dart' show Graphic;
 export 'src/drawing/shading.dart'
     show AxialShading, GradientStop, PdfShading, RadialShading;
-export 'src/flate.dart' show adler32, deflate, inflate, zlibDecode, zlibEncode;
-export 'src/fonts/brotli.dart' show brotliDecode;
 export 'src/fonts/fonts.dart'
     show EmbeddedFont, PdfFont, ShapedGlyph, StandardFont;
-export 'src/fonts/opentype.dart' show FontFormatException, OpenTypeFont;
-export 'src/fonts/woff.dart' show decodeWebFont, isWebFont;
 export 'src/images/images.dart'
     show
         ImageFormatException,

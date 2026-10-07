@@ -134,6 +134,22 @@ void main() {
     expect(kerning(second, 'To'), closeTo(-60 * unit, 1e-6));
   });
 
+  test('WOFF and WOFF2 fonts embed as the fonts they wrap', () {
+    final ttf = EmbeddedFont.parse(
+      File('test/fonts/notoserif-features.ttf').readAsBytesSync(),
+    );
+    for (final name in [
+      'notoserif-features.woff',
+      'notoserif-features.woff2',
+    ]) {
+      final web = EmbeddedFont.parse(
+        File('test/fonts/$name').readAsBytesSync(),
+      );
+      expect(web.name, ttf.name);
+      expect(web.widthOf('Web fonts', 12), ttf.widthOf('Web fonts', 12));
+    }
+  });
+
   test('standard font metrics and kerning', () {
     final helvetica = StandardFont.helvetica;
     expect(helvetica.widthOf('A', 1000, kerning: false), 667);

@@ -125,13 +125,6 @@ void main() {
     count: 150,
   );
   fuzz(
-    'Brotli',
-    files('test/brotli', '.br'),
-    brotliDecode,
-    (error) => error is FormatException,
-    count: 400,
-  );
-  fuzz(
     'PDF reading',
     [File('test/golden/hello.pdf')],
     (bytes) {

@@ -7,10 +7,10 @@ library;
 
 import 'dart:typed_data';
 
+import 'package:compression/compression.dart';
 import 'package:libpdf/src/drawing/canvas.dart';
 import 'package:libpdf/src/drawing/geometry.dart';
 import 'package:libpdf/src/drawing/graphic.dart';
-import 'package:libpdf/src/flate.dart';
 import 'package:libpdf/src/images/exif.dart';
 import 'package:libpdf/src/images/png_decode.dart';
 import 'package:libpdf/src/objects.dart';

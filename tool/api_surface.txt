@@ -9,13 +9,7 @@ String formatNumber(num value, {int precision = 5})
 String get libpdfVersion
 String get unicodeVersion
 String pdfDate(DateTime date)
-Uint8List brotliDecode(List<int> data)
-Uint8List decodeWebFont(List<int> bytes)
-Uint8List deflate(List<int> data, {int level = 6})
-Uint8List inflate(List<int> data)
 Uint8List md5(List<int> data)
-Uint8List zlibDecode(List<int> data)
-Uint8List zlibEncode(List<int> data, {int level = 6})
 abstract base class ItemLineBreaker implements LineBreaker
   ItemLineBreaker()
   List<Line> breakLines(Paragraph paragraph, double Function(int) widths)
@@ -44,7 +38,6 @@ abstract interface class ZlibCodec
   Uint8List decode(List<int> data)
   Uint8List encode(List<int> data, int level)
   ZlibCodec()
-bool isWebFont(List<int> bytes)
 enum BlendMode
   String pdfName
   static BlendMode colorBurn
@@ -1137,7 +1130,6 @@ final class XyzDestination extends PdfDestination
   double? left
   double? top
   double? zoom
-int adler32(List<int> data)
 sealed class ColumnWidth
   ColumnWidth.auto()
   ColumnWidth.computed(double Function(double) width)

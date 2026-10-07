@@ -9,12 +9,12 @@ library;
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:fonts/fonts.dart';
 import 'package:libpdf/src/drawing/canvas.dart';
 import 'package:libpdf/src/drawing/color.dart';
 import 'package:libpdf/src/drawing/geometry.dart';
 import 'package:libpdf/src/drawing/graphic.dart';
 import 'package:libpdf/src/fonts/fonts.dart';
-import 'package:libpdf/src/fonts/opentype.dart';
 import 'package:libpdf/src/math/math_table.dart';
 import 'package:libpdf/src/math/mathml.dart';
 

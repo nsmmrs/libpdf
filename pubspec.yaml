@@ -4,6 +4,9 @@ description: >-
   fonts, images, drawing, and a box-tree layout engine with pluggable line
   breaking.
 version: 0.1.0-dev
+# Not publishable while compression and fonts are git dependencies
+# (publish them first).
+publish_to: none
 repository: https://github.com/nsmmrs/libpdf
 issue_tracker: https://github.com/nsmmrs/libpdf/issues
 topics:
@@ -15,6 +18,14 @@ environment:
   sdk: ^3.13.0
 
 dependencies:
+  compression:
+    git:
+      url: https://github.com/nsmmrs/compression.git
+      ref: 51b29595a17f9de9455b26c311df06075e50a9b1
+  fonts:
+    git:
+      url: https://github.com/nsmmrs/fonts.git
+      ref: 8931b40a981aa5ce5fa0af555d5b411b2da60cab
   meta: ^1.16.0
   xml: ^7.1.0
 

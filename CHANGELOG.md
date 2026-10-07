@@ -18,13 +18,13 @@
   text stays extractable; and the 14 standard fonts with metrics, kerning
   and WinAnsi encoding generated from the Adobe AFM files. CFF fonts are
   embedded whole for now.
-- Web fonts: WOFF and WOFF2 fonts read as the fonts they wrap
-  (`decodeWebFont`, and `OpenTypeFont.parse` and `EmbeddedFont.parse`
-  directly), WOFF2's glyf, loca and hmtx transforms undone; a Brotli
-  decoder (RFC 7932, `brotliDecode`) whose dictionary and transforms are
-  generated from google/brotli 1.2.0 (`tool/generate_brotli.dart`).
-  Checked against the brotli tool, woff2_compress/woff2_decompress and
-  fontTools.
+- Web fonts: WOFF and WOFF2 fonts embed as the fonts they wrap.
+- Font reading and subsetting moved to the fonts package
+  (github.com/nsmmrs/fonts), and DEFLATE, zlib and Brotli to the
+  compression package (github.com/nsmmrs/compression), with their
+  history; libpdf depends on both and re-exports `OpenTypeFont` and
+  `FontFormatException`, which its API uses. `adler32`, `deflate`,
+  `inflate`, `zlibEncode` and `zlibDecode` now come from compression.
 - Images: JPEG files embedded as they are (DCTDecode; gray, RGB and CMYK,
   baseline and progressive, Adobe-inverted CMYK, EXIF orientation
   reported); PNG files of every color type and bit depth, embedded as they

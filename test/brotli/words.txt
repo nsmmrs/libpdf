@@ -1,4 +1,0 @@
-The quick brown fox jumps over the lazy dog. When the time comes, the people
-of the world will know that THE ANSWER was there all along: "Hello, World!"
-Information, international, development and government are words the static
-dictionary knows, as are <html>, <div class="content"> and </body>.
