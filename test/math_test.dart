@@ -147,7 +147,8 @@ void main() {
     });
 
     test('a large operator is larger in display style, with limits', () {
-      const sum = '<munderover><mo>∑</mo><mi>i</mi><mi>n</mi></munderover>';
+      const sum =
+          '<munderover><mo>\u2211</mo><mi>i</mi><mi>n</mi></munderover>';
       final inline = box(math(sum));
       final display = box(math(sum), display: true);
       // DisplayOperatorMinHeight: 2.3 em at least.
@@ -157,14 +158,14 @@ void main() {
         greaterThan(inline.height + inline.depth),
       );
       // Inline, the limits are scripts: beside, so wider than the sign.
-      final sign = box(math('<mo>∑</mo>'));
+      final sign = box(math('<mo>\u2211</mo>'));
       expect(inline.width, greaterThan(sign.width));
     });
 
     test('an accent over its base', () {
       final v = box(math('<mi>v</mi>'));
       final vec = box(
-        math('<mover accent="true"><mi>v</mi><mo>→</mo></mover>'),
+        math('<mover accent="true"><mi>v</mi><mo>\u2192</mo></mover>'),
       );
       expect(vec.height, greaterThan(v.height + 1));
     });

@@ -400,8 +400,8 @@ final class MathLayout {
         if (variant != null) text = _variant(text, variant);
       case MathTokenKind.operator:
         text = switch (text) {
-          '-' => '−',
-          "'" => '′',
+          '-' => '\u2212',
+          "'" => '\u2032',
           _ => text,
         };
         if (variant != null) text = _variant(text, variant);
@@ -511,7 +511,6 @@ final class MathLayout {
       0x232a => 0x27e9,
       0x2010 || 0x2011 || 0x2012 || 0x2013 => 0x2212,
       0x00b7 => 0x22c5,
-      0x2223 => 0x7c,
       0x2032 => 0x27,
       0x025b => 0x03b5,
       _ => null,
@@ -651,7 +650,7 @@ final class MathLayout {
     return _Box(x, top, bottom, items, italic: stretched.last.italic);
   }
 
-  static const Set<String> _bars = {'|', '‖', '∣', '∥'};
+  static const Set<String> _bars = {'|', '\u2016', '\u2225'};
 
   bool _isFence(_Box box) =>
       box.token != null &&
@@ -910,7 +909,13 @@ final class MathLayout {
 
   // Under and over.
 
-  static const Set<String> _bars2 = {'¯', '‾', '̅', '_', '̲'};
+  static const Set<String> _bars2 = {
+    '\u00af',
+    '\u203e',
+    '\u0305',
+    '_',
+    '\u0332',
+  };
 
   _Box _underOver(MathUnderOver node, _Style s) {
     final base = _layout(node.base, s);
@@ -1125,7 +1130,7 @@ final class MathLayout {
         ? _c(MathConstant.radicalDisplayStyleVerticalGap, s)
         : _c(MathConstant.radicalVerticalGap, s);
     final target = radicand.height + radicand.depth + gap + thickness;
-    const sign = '√';
+    const sign = '\u221a';
     final glyph = _otf.glyphFor(sign.runes.first);
     final construction = _table.vertical(glyph);
     final scale = _size(s) / _upem;
@@ -1360,23 +1365,23 @@ final class MathLayout {
   // Operators.
 
   static const String _relations =
-      '=<>≤≥≠≈≡∼≅∝→←'
-      '↔⇒⇐⇔↦∈∉∋⊂⊃⊆'
-      '⊇⊄⊅≺≻⪯⪰∣⊥∥≪'
-      '≫⊨⊢⊣≔≃≐⇄⇆⟶⟵'
-      '⟹⟸⟺↪↩↗↘↖↙↿↾'
-      '↑↓⇑⇓⇋⇌⩽⩾≲≳≦'
-      '≧≙≜∴∵:';
+      '=<>\u2264\u2265\u2260\u2248\u2261\u223c\u2245\u221d\u2192\u2190'
+      '\u2194\u21d2\u21d0\u21d4\u21a6\u2208\u2209\u220b\u2282\u2283\u2286'
+      '\u2287\u2284\u2285\u227a\u227b\u2aaf\u2ab0\u2223\u22a5\u2225\u226a'
+      '\u226b\u22a8\u22a2\u22a3\u2254\u2243\u2250\u21c4\u21c6\u27f6\u27f5'
+      '\u27f9\u27f8\u27fa\u21aa\u21a9\u2197\u2198\u2196\u2199\u21bf\u21be'
+      '\u2191\u2193\u21d1\u21d3\u21cb\u21cc\u2a7d\u2a7e\u2272\u2273\u2266'
+      '\u2267\u2259\u225c\u2234\u2235:';
   static const String _binaries =
-      '+−±∓×÷⋅∘∗⋆∩∪'
-      '∧∨⊕⊗⊙∖⋉⋊⊖⊘⊚'
-      '⊎⊓⊔△▽†‡≀⋄';
-  static const String _opens = '([{⟨⌊⌈〈⟦⦃';
-  static const String _closes = ')]}⟩⌋⌉〉⟧⦄';
+      '+\u2212\u00b1\u2213\u00d7\u00f7\u22c5\u2218\u2217\u22c6\u2229\u222a'
+      '\u2227\u2228\u2295\u2297\u2299\u2216\u22c9\u22ca\u2296\u2298\u229a'
+      '\u228e\u2293\u2294\u25b3\u25bd\u2020\u2021\u2240\u22c4';
+  static const String _opens = '([{\u27e8\u230a\u2308\u2329\u27e6\u2983';
+  static const String _closes = ')]}\u27e9\u230b\u2309\u232a\u27e7\u2984';
   static const String _largeOps =
-      '∑∏∐∫∬∭∮∯∰⋃⋂'
-      '⋁⋀⨀⨁⨂⨄⨆⨌';
-  static const String _integrals = '∫∬∭∮∯∰⨌';
+      '\u2211\u220f\u2210\u222b\u222c\u222d\u222e\u222f\u2230\u22c3\u22c2'
+      '\u22c1\u22c0\u2a00\u2a01\u2a02\u2a04\u2a06\u2a0c';
+  static const String _integrals = '\u222b\u222c\u222d\u222e\u222f\u2230\u2a0c';
   static const Set<String> _limitWords = {
     'lim',
     'max',
