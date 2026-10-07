@@ -521,11 +521,12 @@ final class OpenTypeFont {
     final byLookup = <List<int>>[];
     for (final index in lookups) {
       final lookup = lookupList + _data.u16(lookupList + 2 + 2 * index);
-      var type = _data.u16(lookup);
+      final lookupType = _data.u16(lookup);
       final count = _data.u16(lookup + 4);
       final subtables = <int>[];
       for (var s = 0; s < count; s++) {
         var sub = lookup + _data.u16(lookup + 6 + 2 * s);
+        var type = lookupType;
         if (type == 9) {
           // Extension: the real type and an offset to the subtable.
           type = _data.u16(sub + 2);
@@ -672,7 +673,8 @@ final class OpenTypeFont {
   final Map<String, Map<int, int>> _singles = {};
 
   /// The glyph each glyph becomes in [feature] (`onum`, `smcp`...): the
-  /// feature's single substitutions (GSUB lookup type 1); empty when the
+  /// feature's single substitutions (GSUB lookup type 1, and type 2's
+  /// one-glyph sequences); empty when the
   /// font hasn't the feature.
   Map<int, int> singleSubstitutions(String feature) =>
       _singles[feature] ??= _readSingles(feature);
@@ -690,21 +692,31 @@ final class OpenTypeFont {
     final lookupList = t.offset + _data.u16(t.offset + 8);
     for (final index in _featureLookups(t.offset, feature)) {
       final lookup = lookupList + _data.u16(lookupList + 2 + 2 * index);
-      var type = _data.u16(lookup);
+      final lookupType = _data.u16(lookup);
       final count = _data.u16(lookup + 4);
       for (var s = 0; s < count; s++) {
         var sub = lookup + _data.u16(lookup + 6 + 2 * s);
+        var type = lookupType;
         if (type == 7) {
           type = _data.u16(sub + 2);
           sub += _data.u32(sub + 4);
         }
-        if (type != 1) continue;
+        // Multiple substitutions (type 2) of one glyph each are single
+        // ones too (Libertinus's `smcp`).
+        if (type != 1 && type != 2) continue;
         final format = _data.u16(sub);
         final glyphs = _coverageGlyphs(sub + _data.u16(sub + 2));
+        int? oneOf(int k) {
+          if (k >= _data.u16(sub + 4)) return null;
+          final sequence = sub + _data.u16(sub + 6 + 2 * k);
+          return _data.u16(sequence) == 1 ? _data.u16(sequence + 2) : null;
+        }
+
         for (final (k, glyph) in glyphs.indexed) {
-          final substitute = switch (format) {
-            1 => (glyph + _data.i16(sub + 4)) & 0xffff,
-            2 when k < _data.u16(sub + 4) => _data.u16(sub + 6 + 2 * k),
+          final substitute = switch ((type, format)) {
+            (1, 1) => (glyph + _data.i16(sub + 4)) & 0xffff,
+            (1, 2) when k < _data.u16(sub + 4) => _data.u16(sub + 6 + 2 * k),
+            (2, 1) => oneOf(k),
             _ => null,
           };
           if (substitute != null) result.putIfAbsent(glyph, () => substitute);
@@ -726,10 +738,11 @@ final class OpenTypeFont {
     final lookupList = t.offset + _data.u16(t.offset + 8);
     for (final index in _featureLookups(t.offset, 'liga')) {
       final lookup = lookupList + _data.u16(lookupList + 2 + 2 * index);
-      var type = _data.u16(lookup);
+      final lookupType = _data.u16(lookup);
       final count = _data.u16(lookup + 4);
       for (var s = 0; s < count; s++) {
         var sub = lookup + _data.u16(lookup + 6 + 2 * s);
+        var type = lookupType;
         if (type == 7) {
           type = _data.u16(sub + 2);
           sub += _data.u32(sub + 4);

@@ -4,6 +4,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:libpdf/libpdf.dart';
+import 'package:libpdf/src/flate.dart' show huffmanLengths;
 import 'package:test/test.dart';
 
 void main() {
@@ -41,6 +42,22 @@ void main() {
       expect(zlibDecode(ZLibCodec().encode(data)), data);
     });
   }
+
+  test('Huffman codes deeper than the limit are shortened, complete', () {
+    // Frequencies as the Fibonacci numbers: a tree 18 deep, for codes of
+    // 7 bits at most (the code length alphabet's).
+    final fib = [1, 1];
+    while (fib.length < 19) {
+      fib.add(fib[fib.length - 1] + fib[fib.length - 2]);
+    }
+    for (final maxBits in [7, 9, 15]) {
+      final lengths = huffmanLengths(fib, maxBits);
+      expect(lengths.every((l) => l >= 1 && l <= maxBits), isTrue);
+      // Neither over-subscribed nor incomplete: inflaters reject both.
+      final kraft = lengths.fold(0, (sum, l) => sum + (1 << (maxBits - l)));
+      expect(kraft, 1 << maxBits, reason: 'at most $maxBits bits');
+    }
+  });
 
   test('compression is effective on text', () {
     final text = utf8.encode(File('LICENSE').readAsStringSync() * 20);

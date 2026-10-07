@@ -26,3 +26,10 @@ From Noto Serif 2.015 (SIL Open Font License 1.1, https://openfontlicense.org;
 - `notoserif-features.ttf`: Basic Latin, with the `onum`, `smcp`, `liga`
   and `kern` features, made with
   `pyftsubset NotoSerif-Regular.ttf --unicodes=U+0020-007E --layout-features=onum,smcp,liga,kern --name-IDs='*'`.
+
+From Libertinus Serif 7.051 (SIL Open Font License 1.1; © the Libertinus
+Project Authors):
+
+- `libertinus-smcp.otf`: "Abc", whose `smcp` is a multiple substitution
+  (GSUB type 2) of one glyph each, made with
+  `pyftsubset LibertinusSerif-Regular.otf --text=Abc --layout-features=smcp --name-IDs='*'`.

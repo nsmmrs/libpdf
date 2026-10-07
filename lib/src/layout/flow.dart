@@ -1101,20 +1101,43 @@ final class _Pass {
             if (float.style.float == FloatPlacement.bottom)
               ..._cleared(float, top: false),
         ];
-        final content = floats.isEmpty
-            ? rest ?? const BlockBox([])
-            : BlockBox([
-                for (final float in floats)
-                  if (float.style.float != FloatPlacement.bottom)
-                    _unfloated(float),
-                ?rest,
-              ]);
+        // (The others at the top, the content starting below them as at
+        // the region's top.)
+        var waitingTop = [
+          for (final float in floats)
+            if (float.style.float != FloatPlacement.bottom)
+              ..._cleared(float, top: true),
+        ];
+        final restBox = rest ?? const BlockBox([]);
+        // A break the floating boxes waited before: after them, in the
+        // flow.
+        bool startsWithBreak(LayoutBox box) => switch (box) {
+          BreakBox() => true,
+          BlockBox(:final children) when children.isNotEmpty => startsWithBreak(
+            children.first,
+          ),
+          _ => false,
+        };
+        final breakFirst = waitingTop.isNotEmpty && startsWithBreak(restBox);
+        final content = breakFirst
+            ? BlockBox([...waitingTop, restBox])
+            : restBox;
+        if (breakFirst) waitingTop = const [];
         floats.clear();
         _floatsWaiting = 0;
         _floatsNotHere.clear();
-        final reserved = waitingBottom.isEmpty
-            ? 0.0
-            : _measure(BlockBox(waitingBottom), region.width);
+        final reserved =
+            (waitingBottom.isEmpty
+                ? 0.0
+                : _measure(BlockBox(waitingBottom), region.width)) +
+            (waitingTop.isEmpty
+                ? 0.0
+                : _place(
+                    BlockBox(waitingTop),
+                    region.width,
+                    double.infinity,
+                    atTop: true,
+                  ).height);
         var fit = _place(
           content,
           region.width,
@@ -1123,7 +1146,7 @@ final class _Pass {
         );
         // Floating boxes that fit, at the top or the bottom of the region:
         // the content in what the top ones leave.
-        final top = <LayoutBox>[];
+        final top = <LayoutBox>[...waitingTop];
         final bottom = <LayoutBox>[...waitingBottom];
         if (fit.pinned.isNotEmpty) {
           fit = _pinFloats(content, region, fit, top, bottom);
@@ -1329,10 +1352,15 @@ final class _Pass {
       for (final (box, y, height) in fit.pinned) {
         if (!_floatsSet.add(box)) continue;
         added = true;
+        // (Auto: at the top if its middle, placed in the flow, would be
+        // in the region's upper half, the floats placed already taking
+        // their room, as Typst's.)
         final atTop = switch (box.style.float) {
           FloatPlacement.top => true,
           FloatPlacement.bottom => false,
-          _ => y + height / 2 < region.height / 2,
+          _ =>
+            measured(top) + measured(bottom) + y + height / 2 <=
+                region.height / 2,
         };
         final cleared = _cleared(box, top: atTop);
         (atTop ? top : bottom).addAll(cleared);

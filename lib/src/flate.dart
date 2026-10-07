@@ -3,6 +3,7 @@
 /// (including the web).
 library;
 
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 /// Compresses [data] in the zlib format (`/FlateDecode` streams).
@@ -328,8 +329,8 @@ void _writeBlock(
     }
   }
   litFreq[256] = 1;
-  final litLengths = _huffmanLengths(litFreq, 15);
-  final distLengths = _huffmanLengths(distFreq, 15);
+  final litLengths = huffmanLengths(litFreq, 15);
+  final distLengths = huffmanLengths(distFreq, 15);
   // At least one distance code must be defined.
   if (distLengths.every((l) => l == 0)) distLengths[0] = 1;
 
@@ -355,7 +356,7 @@ void _writeBlock(
   if (clFreq.where((f) => f > 0).length < 2) {
     clFreq[clFreq[0] == 0 ? 0 : 1] += 1;
   }
-  final clLengths = _huffmanLengths(clFreq, 7);
+  final clLengths = huffmanLengths(clFreq, 7);
   var hclen = 19;
   while (hclen > 4 && clLengths[_codeLengthOrder[hclen - 1]] == 0) {
     hclen -= 1;
@@ -487,7 +488,7 @@ List<(int, int)> _runLengths(List<int> lengths) {
 /// Huffman code lengths for [frequencies], none longer than [maxBits]
 /// (zlib's way of limiting lengths: shorten the deepest codes, then hand
 /// the lengths out again by frequency).
-List<int> _huffmanLengths(List<int> frequencies, int maxBits) {
+List<int> huffmanLengths(List<int> frequencies, int maxBits) {
   final n = frequencies.length;
   final lengths = List<int>.filled(n, 0);
   final used = [
@@ -540,26 +541,25 @@ List<int> _huffmanLengths(List<int> frequencies, int maxBits) {
   }
   // Count codes per length, clipping at maxBits.
   final blCount = List<int>.filled(maxBits + 1, 0);
-  var overflow = 0;
   for (var k = 0; k < used.length; k++) {
-    var bits = depth[k];
-    if (bits > maxBits) {
-      bits = maxBits;
-      overflow += 1;
-    }
-    blCount[bits] += 1;
+    blCount[math.min(depth[k], maxBits)] += 1;
   }
-  if (overflow > 0) {
-    do {
-      var bits = maxBits - 1;
-      while (blCount[bits] == 0) {
-        bits -= 1;
-      }
-      blCount[bits] -= 1;
-      blCount[bits + 1] += 2;
-      blCount[maxBits] -= 1;
-      overflow -= 2;
-    } while (overflow > 0);
+  // Clipped codes over-subscribe the code (its Kraft sum, in units of
+  // 2^-maxBits, passes 2^maxBits): each step moves a leaf one level down
+  // with a clipped code as its brother, taking one unit off, until the
+  // code is complete again.
+  var kraft = 0;
+  for (var bits = 1; bits <= maxBits; bits++) {
+    kraft += blCount[bits] << (maxBits - bits);
+  }
+  for (; kraft > 1 << maxBits; kraft--) {
+    var bits = maxBits - 1;
+    while (blCount[bits] == 0) {
+      bits -= 1;
+    }
+    blCount[bits] -= 1;
+    blCount[bits + 1] += 2;
+    blCount[maxBits] -= 1;
   }
   // Hand the lengths out: the least frequent symbols get the longest.
   final byFrequency = [...used]

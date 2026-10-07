@@ -170,6 +170,19 @@ void main() {
     );
   });
 
+  test('small capitals by multiple substitutions of one glyph', () {
+    // Libertinus's smcp is a GSUB type 2 lookup.
+    final font = EmbeddedFont.parse(
+      File('test/fonts/libertinus-smcp.otf').readAsBytesSync(),
+    );
+    List<int> ids(String text, [Set<String> features = const {}]) => [
+      for (final glyph in font.shape(text, features: features)) glyph.id,
+    ];
+    final small = ids('Abc', {'smcp'});
+    expect(small, hasLength(3));
+    expect(small.sublist(1), isNot(ids('bc')));
+  });
+
   test('ligatures replace their sequence', () {
     final font = EmbeddedFont.parse(serif());
     final shaped = font.shape('office', ligatures: true);

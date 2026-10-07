@@ -319,6 +319,47 @@ void main() {
       expect(result.anchors['fig']!.page, 1);
     });
 
+    test('auto: the floats placed already take their room', () {
+      // A figure of 30 that waited for the top of the next region: the
+      // next one's middle, in the flow after a line, past that region's
+      // half: at the bottom.
+      final result = layout([
+        const CustomBox(_Rigid(75)),
+        const CustomBox(
+          _Rigid(30),
+          style: BoxStyle(anchor: 'top', float: FloatPlacement.top),
+        ),
+        const CustomBox(_Lines(1, 0, prefix: 'b')),
+        figureAt(FloatPlacement.auto),
+        const CustomBox(_Lines(1, 0, prefix: 'c')),
+      ]);
+      expect(result.anchors['top']!.page, 1);
+      expect(result.anchors['top']!.y, closeTo(90, 1e-6));
+      expect(result.anchors['fig']!.page, 1);
+      expect(result.anchors['fig']!.y, closeTo(30, 1e-6));
+    });
+
+    test('for the top that wait keep their clearance', () {
+      LayoutResult at(double clearance) => layout([
+        const CustomBox(_Rigid(75)),
+        CustomBox(
+          const _Rigid(20),
+          style: BoxStyle(
+            anchor: 'fig',
+            float: FloatPlacement.top,
+            floatClearance: clearance,
+          ),
+        ),
+        const CustomBox(_Lines(1, 0, prefix: 'b')),
+      ]);
+      expect(at(15).anchors['fig']!.page, 1);
+      expect(at(15).anchors['fig']!.y, closeTo(90, 1e-6));
+      expect(
+        at(0).anchors['b-0']!.y - at(15).anchors['b-0']!.y,
+        closeTo(15, 1e-6),
+      );
+    });
+
     test('keep their clearance from the text', () {
       LayoutResult at(double clearance) => layout([
         const CustomBox(_Lines(2, 0)),
