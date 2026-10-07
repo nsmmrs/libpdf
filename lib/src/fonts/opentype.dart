@@ -6,6 +6,8 @@ library;
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:libpdf/src/fonts/woff.dart';
+
 /// A font file that could not be read.
 final class FontFormatException implements Exception {
   /// An exception with [message].
@@ -92,9 +94,15 @@ final class OpenTypeFont {
   }
 
   /// Reads the font in [bytes]; for a font collection (`.ttc`), the font
-  /// at [index].
+  /// at [index]. A WOFF or WOFF2 font is read as the font it wraps.
   factory parse(List<int> bytes, {int index = 0}) {
-    final data = _Data(bytes is Uint8List ? bytes : Uint8List.fromList(bytes));
+    final data = _Data(
+      isWebFont(bytes)
+          ? decodeWebFont(bytes)
+          : bytes is Uint8List
+          ? bytes
+          : Uint8List.fromList(bytes),
+    );
     var directory = 0;
     if (data.bytes.length >= 12 && data.tag(0) == 'ttcf') {
       final count = data.u32(8);

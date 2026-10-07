@@ -45,9 +45,11 @@ export 'src/drawing/graphic.dart' show Graphic;
 export 'src/drawing/shading.dart'
     show AxialShading, GradientStop, PdfShading, RadialShading;
 export 'src/flate.dart' show adler32, deflate, inflate, zlibDecode, zlibEncode;
+export 'src/fonts/brotli.dart' show brotliDecode;
 export 'src/fonts/fonts.dart'
     show EmbeddedFont, PdfFont, ShapedGlyph, StandardFont;
 export 'src/fonts/opentype.dart' show FontFormatException, OpenTypeFont;
+export 'src/fonts/woff.dart' show decodeWebFont, isWebFont;
 export 'src/images/images.dart'
     show
         ImageFormatException,

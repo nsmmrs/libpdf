@@ -34,6 +34,18 @@ Project Authors):
   (GSUB type 2) of one glyph each, made with
   `pyftsubset LibertinusSerif-Regular.otf --text=Abc --layout-features=smcp --name-IDs='*'`.
 
+Web fonts, made from the fonts above:
+
+- `notoserif-features.woff`: `notoserif-features.ttf` as WOFF, made with
+  fontTools (`flavor = 'woff'`, timestamps kept).
+- `notoserif-features.woff2`: made with `woff2_compress` (google/woff2;
+  the glyf and loca tables transformed). The test checks its glyf and loca
+  tables against `woff2_decompress`'s.
+- `notoserif-features-hmtx.woff2`: made with fontTools'
+  `woff2.compress(..., transform_tables={'glyf', 'loca', 'hmtx'})`.
+- `libertinus-smcp.woff2`: `libertinus-smcp.otf` (CFF outlines), made with
+  `woff2_compress`.
+
 Math:
 
 - `notosansmath-subset.ttf`: Noto Sans Math 3.000 (SIL Open Font License

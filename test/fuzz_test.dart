@@ -99,21 +99,37 @@ void main() {
       const PdfRect(0, 0, 200, 200),
     );
   }, (error) => error is FormatException);
+  void drawText(Uint8List bytes) {
+    final font = EmbeddedFont.parse(bytes);
+    final style = PdfTextStyle(font, 12);
+    final document = PdfDocument();
+    document
+        .addPage(const PdfRect(0, 0, 200, 200))
+        .canvas
+        .text('Hello, fuzz', 10, 100, style);
+    document.save();
+  }
+
   fuzz(
     'OpenType',
-    files('test/fonts', 'f', limit: 8),
-    (bytes) {
-      final font = EmbeddedFont.parse(bytes);
-      final style = PdfTextStyle(font, 12);
-      final document = PdfDocument();
-      document
-          .addPage(const PdfRect(0, 0, 200, 200))
-          .canvas
-          .text('Hello, fuzz', 10, 100, style);
-      document.save();
-    },
+    files('test/fonts', 'tf', limit: 8),
+    drawText,
     (error) => error is FontFormatException,
     count: 100,
+  );
+  fuzz(
+    'WOFF and WOFF2',
+    [...files('test/fonts', '.woff'), ...files('test/fonts', '.woff2')],
+    drawText,
+    (error) => error is FontFormatException,
+    count: 150,
+  );
+  fuzz(
+    'Brotli',
+    files('test/brotli', '.br'),
+    brotliDecode,
+    (error) => error is FormatException,
+    count: 400,
   );
   fuzz(
     'PDF reading',
