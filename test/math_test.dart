@@ -1,5 +1,6 @@
 // The OpenType MATH table, MathML and the math layout, with a subset of
 // Noto Sans Math (its MATH values checked against fontTools').
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:libpdf/libpdf.dart';
@@ -196,8 +197,15 @@ void main() {
       final file = File(
         '${Directory.systemTemp.createTempSync('math').path}/x.pdf',
       )..writeAsBytesSync(doc.save());
+      // (UTF-8 both ways: Windows decodes output in its code page.)
       final text =
-          Process.runSync('pdftotext', [file.path, '-']).stdout as String;
+          Process.runSync('pdftotext', [
+                '-enc',
+                'UTF-8',
+                file.path,
+                '-',
+              ], stdoutEncoding: utf8).stdout
+              as String;
       expect(text.trim(), '\u{1d465}+1');
     }, skip: _has('pdftotext') ? false : 'needs pdftotext');
   });

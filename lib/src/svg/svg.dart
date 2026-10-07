@@ -207,7 +207,12 @@ PdfFont? _standardFonts(
 (double, double, double, double)? _parseViewBox(String? text) {
   if (text == null) return null;
   final values = _numbers(text);
-  if (values.length != 4 || values[2] <= 0 || values[3] <= 0) return null;
+  if (values.length != 4 ||
+      values.any((v) => !v.isFinite) ||
+      values[2] <= 0 ||
+      values[3] <= 0) {
+    return null;
+  }
   return (values[0], values[1], values[2], values[3]);
 }
 
@@ -395,24 +400,37 @@ final class _Renderer {
 
   void _warn(String message) => svg._warnings.add(message);
 
+  static bool _finite(PdfMatrix m) =>
+      m.a.isFinite &&
+      m.b.isFinite &&
+      m.c.isFinite &&
+      m.d.isFinite &&
+      m.e.isFinite &&
+      m.f.isFinite;
+
   void render(PdfRect rect) {
     final box = svg._viewBox;
     final (sx, sy, tx, ty) = svg._aspect.fit(box, rect.width, rect.height);
+    final matrix = PdfMatrix(
+      sx,
+      0,
+      0,
+      -sy,
+      rect.left + tx - sx * box.$1,
+      rect.top - ty + sy * box.$2,
+    );
+    // A viewport that can't be mapped (an empty or unbounded one) shows
+    // nothing.
+    if (!_finite(matrix)) {
+      _warn('a viewport that cannot be drawn');
+      return;
+    }
     _viewports.add((box.$3, box.$4));
     canvas
       ..save()
       ..rect(rect)
       ..clip()
-      ..transform(
-        PdfMatrix(
-          sx,
-          0,
-          0,
-          -sy,
-          rect.left + tx - sx * box.$1,
-          rect.top - ty + sy * box.$2,
-        ),
-      );
+      ..transform(matrix);
     final style = _compute(svg._root, _initialStyle);
     _children(svg._root, style);
     canvas.restore();
@@ -682,9 +700,19 @@ final class _Renderer {
       final (sx, sy, tx, ty) = _AspectRatio.parse(
         element.getAttribute('preserveAspectRatio'),
       ).fit(box, width, height);
-      canvas.transform(
-        PdfMatrix(sx, 0, 0, sy, x + tx - sx * box.$1, y + ty - sy * box.$2),
+      final matrix = PdfMatrix(
+        sx,
+        0,
+        0,
+        sy,
+        x + tx - sx * box.$1,
+        y + ty - sy * box.$2,
       );
+      if (!_finite(matrix)) {
+        _warn('a viewport that cannot be drawn');
+        return;
+      }
+      canvas.transform(matrix);
       _viewports.add((box.$3, box.$4));
       draw();
       _viewports.removeLast();
