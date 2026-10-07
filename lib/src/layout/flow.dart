@@ -1023,11 +1023,34 @@ final class FlowLayout {
   static String _decimal(int number) => '$number';
 
   /// [content] laid out on pages.
-  LayoutResult layout(List<LayoutBox> content) {
+  LayoutResult layout(
+    List<LayoutBox> content, {
+    LayoutResult? reuse,
+    int unchangedBefore = 0,
+    Set<int>? changedPages,
+  }) {
     var anchors = <String, AnchorPosition>{};
+    // Laid out again after a change at or after [unchangedBefore]: the
+    // pages before the last clean boundary before it are kept, and the
+    // first pass goes on from there.
+    _Boundary? resumeAt;
+    if (reuse != null && identical(reuse._layout, this)) {
+      anchors = reuse.anchors;
+      for (final boundary in reuse._boundaries) {
+        if (boundary.index > unchangedBefore) break;
+        if (boundary.index <= content.length && !boundary.hasReferences) {
+          resumeAt = boundary;
+        }
+      }
+    }
     late _Pass pass;
     for (var i = 0; i < maxPasses; i++) {
-      pass = _Pass(this, anchors)..run(content);
+      pass = _Pass(this, anchors);
+      if (i == 0 && resumeAt != null) {
+        pass.resume(content, reuse!, resumeAt, changedPages);
+      } else {
+        pass.run(content);
+      }
       final found = pass.anchors;
       final stable =
           found.length == anchors.length &&
@@ -1035,8 +1058,61 @@ final class FlowLayout {
       anchors = found;
       if (stable || !pass.hasReferences) break;
     }
-    return LayoutResult._(this, pass.pages, anchors, pass.tagPages);
+    return LayoutResult._(
+      this,
+      pass.pages,
+      anchors,
+      pass.tagPages,
+      pass.boundaries,
+      pass.repeatedAnchors,
+    );
   }
+}
+
+/// A point between two pages of a pass where nothing is pending (no
+/// floating box, deferred note or carried piece) and the rest of the
+/// content is the top-level boxes from [index] on: a pass may go on from
+/// here as from the start.
+final class _Boundary {
+  const new({
+    required this.index,
+    required this.pages,
+    required this.template,
+    required this.notesSet,
+    required this.floatsSet,
+    required this.hasReferences,
+  });
+
+  /// The first top-level box after the boundary.
+  final int index;
+
+  /// The pages before it.
+  final int pages;
+
+  /// The template the next page takes.
+  final String? template;
+
+  /// The notes placed before it.
+  final Set<String> notesSet;
+
+  /// The floating boxes set at a region's edge before it.
+  final Set<LayoutBox> floatsSet;
+
+  /// Whether the content before it refers to pages.
+  final bool hasReferences;
+
+  /// Whether a pass at [other] goes on as one at this boundary does
+  /// (neither referring to pages, whose numbers may have moved).
+  bool sameAs(_Boundary other) =>
+      index == other.index &&
+      pages == other.pages &&
+      template == other.template &&
+      !hasReferences &&
+      !other.hasReferences &&
+      notesSet.length == other.notesSet.length &&
+      notesSet.containsAll(other.notesSet) &&
+      floatsSet.length == other.floatsSet.length &&
+      floatsSet.containsAll(other.floatsSet);
 }
 
 /// One layout of the content.
@@ -1055,6 +1131,50 @@ final class _Pass {
   final Map<String, ({int first, int last})> tagPages = {};
   final Map<(ParagraphBox, double), List<Line>> _lines = {};
   bool hasReferences = false;
+  final List<_Boundary> boundaries = [];
+
+  /// The pages (0-based) of the anchors placed more than once, after the
+  /// first.
+  final Map<String, List<int>> repeatedAnchors = {};
+
+  /// The layout this pass goes on from, and the pages of it that change
+  /// (null: all after where it goes on).
+  LayoutResult? _reuse;
+  Set<int>? _changedPages;
+
+  /// The boundaries of [_reuse] by their box.
+  Map<int, (int, _Boundary)> _reuseBoundaries = const {};
+
+  /// The pages taken from [_reuse] (their marks are in them already).
+  final Set<int> _kept = {};
+
+  /// Lays [content] out from [boundary] of [reuse] (of the same content
+  /// up to it): its pages before the boundary, then the rest, taking its
+  /// pages again from a later boundary on when the pass comes to it as
+  /// [reuse] did and none of them is in [changedPages].
+  void resume(
+    List<LayoutBox> content,
+    LayoutResult reuse,
+    _Boundary boundary,
+    Set<int>? changedPages,
+  ) {
+    _reuse = reuse;
+    _changedPages = changedPages;
+    if (changedPages != null) {
+      _reuseBoundaries = {
+        for (final (i, b) in reuse._boundaries.indexed) b.index: (i, b),
+      };
+    }
+    pages.addAll(reuse._pages.take(boundary.pages));
+    _kept.addAll(Iterable.generate(boundary.pages));
+    _notesSet.addAll(boundary.notesSet);
+    _floatsSet.addAll(boundary.floatsSet);
+    hasReferences = boundary.hasReferences;
+    boundaries.addAll(
+      reuse._boundaries.takeWhile((b) => b.index <= boundary.index),
+    );
+    run(content, from: boundary);
+  }
 
   /// A page of the template named [name], as the page after [pages].
   _Page _newPage(String? name) {
@@ -1076,9 +1196,13 @@ final class _Pass {
     pages.add(page);
   }
 
-  void run(List<LayoutBox> content) {
-    LayoutBox? rest = BlockBox(content);
-    var template = layout.startTemplate;
+  void run(List<LayoutBox> content, {_Boundary? from}) {
+    LayoutBox? rest = from == null
+        ? BlockBox(content)
+        : from.index < content.length
+        ? BlockBox._rest(content.sublist(from.index), const BoxStyle())
+        : null;
+    var template = from == null ? layout.startTemplate : from.template;
     var guard = 0;
     // What was placed on a page that was replaced (anchors, marks: it had
     // no height), carried to the page replacing it.
@@ -1218,6 +1342,60 @@ final class _Pass {
       if (side != null && PageSide.of(pages.length + 1) != side) {
         _add(_newPage(template), carried);
       }
+      // A clean boundary: the rest is the top-level boxes from one on,
+      // nothing pending.
+      if (carried.isEmpty && floats.isEmpty && _deferredNotes == null) {
+        if (rest case BlockBox(:final children, _continued: true)
+            when children.isNotEmpty &&
+                children.length < content.length &&
+                identical(
+                  children.first,
+                  content[content.length - children.length],
+                )) {
+          var boundary = _Boundary(
+            index: content.length - children.length,
+            pages: pages.length,
+            template: template,
+            notesSet: {..._notesSet},
+            floatsSet: Set.identity()..addAll(_floatsSet),
+            hasReferences: hasReferences,
+          );
+          boundaries.add(boundary);
+          // The pages of the layout gone on from, up to its next
+          // boundary, when this one is the same as its and none of them
+          // changes.
+          while (true) {
+            final (i, old) = _reuseBoundaries[boundary.index] ?? (-1, null);
+            if (old == null || !old.sameAs(boundary)) break;
+            final reuse = _reuse!;
+            final next = i + 1 < reuse._boundaries.length
+                ? reuse._boundaries[i + 1]
+                : null;
+            final end = next?.pages ?? reuse._pages.length;
+            if (_changedPages!.any((p) => p >= old.pages && p < end)) break;
+            for (final page in reuse._pages.sublist(old.pages, end)) {
+              _kept.add(pages.length);
+              pages.add(page);
+            }
+            if (next == null) {
+              rest = null;
+              break;
+            }
+            rest = BlockBox._rest(
+              content.sublist(next.index),
+              const BoxStyle(),
+            );
+            template = next.template;
+            _notesSet
+              ..clear()
+              ..addAll(next.notesSet);
+            _floatsSet
+              ..clear()
+              ..addAll(next.floatsSet);
+            boundaries.add(boundary = next);
+          }
+        }
+      }
       if (++guard > 100000) throw StateError('layout does not progress');
     }
     // A last page with nothing on it (after a trailing page break) is left
@@ -1227,14 +1405,20 @@ final class _Pass {
       pages.removeLast();
     }
     for (final (i, page) in pages.indexed) {
+      final kept = _kept.contains(i);
       for (final (region, placed) in page.placed) {
         placed?.visit(
           region.left,
           region.top,
           (anchor, x, y) {
-            anchors.putIfAbsent(anchor, () => AnchorPosition(i, x, y));
+            if (anchors.containsKey(anchor)) {
+              (repeatedAnchors[anchor] ??= []).add(i);
+            } else {
+              anchors[anchor] = AnchorPosition(i, x, y);
+            }
           },
-          page.marks.add,
+          // (Pages kept from another pass have their marks.)
+          kept ? (_) {} : page.marks.add,
           (tag) {
             final first = tagPages[tag]?.first ?? i + 1;
             tagPages[tag] = (first: first, last: i + 1);
@@ -3198,10 +3382,43 @@ final class _PlacedTable extends _Placed {
 
 /// Content laid out on pages, ready to render.
 final class LayoutResult {
-  new _(this._layout, this._pages, this.anchors, this.tagPages);
+  new _(
+    this._layout,
+    this._pages,
+    this.anchors,
+    this.tagPages,
+    this._boundaries,
+    this._repeatedAnchors,
+  );
 
   final FlowLayout _layout;
   final List<_Page> _pages;
+  final List<_Boundary> _boundaries;
+  final Map<String, List<int>> _repeatedAnchors;
+
+  /// The pages (0-based) [anchor] is placed on, in order: the page of
+  /// [anchors]'s position, then those of its repetitions.
+  List<int> anchorPages(String anchor) => [
+    ?anchors[anchor]?.page,
+    ...?_repeatedAnchors[anchor],
+  ];
+
+  /// The top-level boxes after which a later layout of the same content
+  /// may go on from this one's pages (each the start of a run of pages
+  /// nothing before it reaches into).
+  List<int> get boundaries => [for (final b in _boundaries) b.index];
+
+  /// The last of [boundaries] with only pages before [page] (0-based)
+  /// before it, or 0: a later layout that changes nothing on the pages
+  /// before [page] may go on from it.
+  int boundaryBefore(int page) {
+    var index = 0;
+    for (final boundary in _boundaries) {
+      if (boundary.pages > page) break;
+      index = boundary.index;
+    }
+    return index;
+  }
 
   /// Where each anchor is.
   final Map<String, AnchorPosition> anchors;

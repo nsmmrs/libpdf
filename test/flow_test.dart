@@ -848,6 +848,129 @@ void main() {
     expect(saved, contains('(x-'));
   });
 
+  group('laid out again', () {
+    // 80 points a region: 7 lines of 10 after a gap of 3.
+    FlowLayout flow() => FlowLayout(
+      template: const PageTemplate(
+        PdfRect(0, 0, 100, 100),
+        margins: EdgeInsets.all(10),
+      ),
+    );
+    // Chapters of [counts] lines (read when placed), each from a new page,
+    // and a slot after them; [placed] gets each chapter placed.
+    (List<LayoutBox>, List<LayoutBox>) book(
+      List<int> counts,
+      List<int> placed,
+    ) {
+      final slot = <LayoutBox>[];
+      return (
+        [
+          for (final (c, _) in counts.indexed) ...[
+            CustomBox(_Tracked(c, counts, placed)),
+            const BreakBox.page(),
+          ],
+          BlockBox(slot),
+        ],
+        slot,
+      );
+    }
+
+    String snapshot(LayoutResult result) {
+      final document = PdfDocument();
+      result.render(document);
+      return [
+        result.pageCount,
+        [
+          for (final MapEntry(:key, :value) in result.anchors.entries)
+            '$key ${value.page} ${value.x} ${value.y}',
+        ],
+        result.tagPages,
+        base64.encode(
+          document.save(options: const PdfWriterOptions(deterministic: true)),
+        ),
+      ].join('\n');
+    }
+
+    test('records where a layout may go on from', () {
+      final (content, _) = book([12, 12, 12], []);
+      final result = flow().layout(content);
+      // After each chapter's page break (the last one's, before the
+      // slot, too).
+      expect(result.boundaries, [2, 4, 6]);
+      expect(result.boundaryBefore(0), 0);
+      expect(result.boundaryBefore(2), 2);
+      expect(result.boundaryBefore(5), 4);
+    });
+
+    test('goes on from the last boundary before a change', () {
+      final placed = <int>[];
+      final (content, slot) = book([12, 12, 12, 12], placed);
+      final layout = flow();
+      final first = layout.layout(content);
+      slot.add(const CustomBox(_Lines(9, 0, prefix: 'ix')));
+      placed.clear();
+      final again = layout.layout(
+        content,
+        reuse: first,
+        unchangedBefore: content.length - 1,
+      );
+      // No chapter placed again.
+      expect(placed, isEmpty);
+      expect(snapshot(again), snapshot(flow().layout(content)));
+      expect(again.anchors['ix-8']!.page, 9);
+    });
+
+    test('takes the pages of the runs that do not change', () {
+      final placed = <int>[];
+      final counts = [12, 12, 12, 12, 12];
+      final (content, _) = book(counts, placed);
+      final layout = flow();
+      final first = layout.layout(content);
+      // Chapter 2 (pages 4 and 5) changes, keeping its pages.
+      counts[2] = 13;
+      placed.clear();
+      final again = layout.layout(
+        content,
+        reuse: first,
+        unchangedBefore: first.boundaryBefore(4),
+        changedPages: {4, 5},
+      );
+      expect(placed.toSet(), {2});
+      expect(snapshot(again), snapshot(flow().layout(content)));
+    });
+
+    test('lays out the rest when a change moves the pages after it', () {
+      final placed = <int>[];
+      final counts = [12, 12, 12, 12];
+      final (content, _) = book(counts, placed);
+      final layout = flow();
+      final first = layout.layout(content);
+      // Chapter 1 takes a page more.
+      counts[1] = 15;
+      placed.clear();
+      final again = layout.layout(
+        content,
+        reuse: first,
+        unchangedBefore: first.boundaryBefore(2),
+        changedPages: {2, 3},
+      );
+      expect(placed.toSet(), {1, 2, 3});
+      expect(snapshot(again), snapshot(flow().layout(content)));
+      expect(again.pageCount, 9);
+    });
+
+    test('gives every page an anchor is placed on', () {
+      final result = flow().layout([
+        const CustomBox(_Fixed(10), style: BoxStyle(anchor: 'twice')),
+        const BreakBox.page(),
+        const CustomBox(_Fixed(10), style: BoxStyle(anchor: 'twice')),
+      ]);
+      expect(result.anchors['twice']!.page, 0);
+      expect(result.anchorPages('twice'), [0, 1]);
+      expect(result.anchorPages('none'), isEmpty);
+    });
+  });
+
   test('a trailing page break makes no empty page', () {
     final result = FlowLayout(template: rowsTemplate(4))
         .layout([para('one'), const BreakBox.page()]);
@@ -1246,4 +1369,42 @@ final class _Rigid implements CustomContent {
 
   @override
   (double, double) intrinsicWidths() => (0, 0);
+}
+
+/// [_Lines] of chapter [chapter], as many as [counts] says when placed,
+/// reporting each placing to [placed].
+final class _Tracked implements CustomContent {
+  const new(this.chapter, this.counts, this.placed, [this.from = 0]);
+
+  final int chapter;
+  final List<int> counts;
+  final List<int> placed;
+  final int from;
+
+  @override
+  CustomPlacement? place(
+    double width,
+    double available, {
+    required bool atTop,
+  }) {
+    placed.add(chapter);
+    final lines = _Lines(counts[chapter], from, prefix: 'c$chapter');
+    final placement = lines.place(width, available, atTop: atTop);
+    if (placement == null) return null;
+    return CustomPlacement(
+      height: placement.height,
+      paint: placement.paint,
+      rest: switch (placement.rest) {
+        _Lines(:final from) => _Tracked(chapter, counts, placed, from),
+        _ => null,
+      },
+      anchors: placement.anchors,
+    );
+  }
+
+  @override
+  double minHeight(double width) => 13;
+
+  @override
+  (double, double) intrinsicWidths() => (10, 10);
 }
