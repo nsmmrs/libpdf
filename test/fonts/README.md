@@ -33,3 +33,10 @@ Project Authors):
 - `libertinus-smcp.otf`: "Abc", whose `smcp` is a multiple substitution
   (GSUB type 2) of one glyph each, made with
   `pyftsubset LibertinusSerif-Regular.otf --text=Abc --layout-features=smcp --name-IDs='*'`.
+
+Math:
+
+- `notosansmath-subset.ttf`: Noto Sans Math 3.000 (SIL Open Font License
+  1.1, https://openfontlicense.org; © 2022 The Noto Project Authors),
+  subset with fontTools to ASCII, the Greek letters, the math italic
+  letters and the operators the math tests use; its `MATH` table kept.

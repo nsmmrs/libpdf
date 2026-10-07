@@ -429,6 +429,22 @@ final class OpenTypeFont {
     return (_data.u32(loca + 4 * glyph), _data.u32(loca + 4 * glyph + 4));
   }
 
+  /// The box around [glyph]'s outline (`xMin`, `yMin`, `xMax`, `yMax`,
+  /// design units), from its `glyf` header; zeros for a glyph without
+  /// outline, or in a font without `glyf`.
+  (int, int, int, int) glyphBounds(int glyph) {
+    if (!hasTable('glyf')) return (0, 0, 0, 0);
+    final data = glyphData(glyph);
+    if (data.length < 10) return (0, 0, 0, 0);
+    final view = ByteData.sublistView(data);
+    return (
+      view.getInt16(2),
+      view.getInt16(4),
+      view.getInt16(6),
+      view.getInt16(8),
+    );
+  }
+
   /// The glyphs composite glyph [glyph] is made of (directly).
   List<int> components(int glyph) {
     final data = glyphData(glyph);
