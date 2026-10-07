@@ -1450,6 +1450,11 @@ final class _Pass {
   /// it).
   double _minHeight(LayoutBox box, double width) {
     final margin = box.style.margin;
+    // A block kept together starts whole, when a region holds it.
+    if (box is BlockBox && box.style.keepTogether) {
+      final whole = _measure(box, width);
+      if (whole <= _regionHeight + 1e-6) return whole;
+    }
     switch (box) {
       case ParagraphBox(:final orphans):
         final lines = _linesOf(box, width - margin.horizontal);

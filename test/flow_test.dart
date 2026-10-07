@@ -921,6 +921,21 @@ void main() {
         ['a1', 'a2', 'a3'],
         ['Heading', 'b1', 'b2', 'b3'],
       ]);
+      // Kept with a block kept together: with all of it.
+      final (withKept, _) = render([
+        para(lines(2, 'a')),
+        ParagraphBox(
+          Paragraph([TextRun('Heading', body)]),
+          style: const BoxStyle(keepWithNext: true),
+        ),
+        BlockBox([
+          para(lines(3, 'k')),
+        ], style: const BoxStyle(keepTogether: true)),
+      ], rowsTemplate(5));
+      expect(pageTexts(withKept, 2), [
+        ['a1', 'a2'],
+        ['Heading', 'k1', 'k2', 'k3'],
+      ]);
     });
 
     test('page breaks, ignored at the top of a page', () {
