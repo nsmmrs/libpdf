@@ -25,7 +25,7 @@ dependencies:
   fonts:
     git:
       url: https://github.com/nsmmrs/fonts.git
-      ref: 8931b40a981aa5ce5fa0af555d5b411b2da60cab
+      ref: 949dab6b6141e206204bd3c4e3c620eee7f7b840
   meta: ^1.16.0
   xml: ^7.1.0
 
