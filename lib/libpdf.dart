@@ -172,7 +172,8 @@ export 'src/svg/path.dart'
         PathSegment,
         SvgPath;
 export 'src/svg/svg.dart' show SvgFontResolver, SvgImage, SvgImageResolver;
-export 'src/writer.dart' show PdfInfo, PdfWriter, PdfWriterOptions, pdfDate;
+export 'src/writer.dart'
+    show PdfInfo, PdfWriter, PdfWriterOptions, ZlibCodec, pdfDate;
 
 /// The version of libpdf.
 const String libpdfVersion = '0.1.0-dev';

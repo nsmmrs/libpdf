@@ -416,7 +416,7 @@ final class PngImage extends PdfImage {
     }
     final layout = PngLayout(width, height, colorType.channels, bitDepth);
     final pixels = unfilterImage(
-      zlibDecode(data),
+      writer.options.decodeZlib(data),
       layout,
       interlaced: interlaced,
     );
@@ -574,7 +574,7 @@ final class PngImage extends PdfImage {
       layout.pixelBytes,
     );
     return _image(
-      zlibEncode(filtered, level: writer.options.compressionLevel),
+      writer.options.encodeZlib(filtered),
       colorSpace,
       depth,
       predictor: (channels, depth),

@@ -536,6 +536,8 @@ final class TypstLineBreaker extends ItemLineBreaker {
         return (1 + 0.15 * steps) * hyphenationCost;
       }
 
+      // (The same for every line ending here: computed once.)
+      double? hyphenCost;
       _TypstEntry? best;
       for (var k = active; k < entries.length; k++) {
         final pred = entries[k];
@@ -563,7 +565,7 @@ final class TypstLineBreaker extends ItemLineBreaker {
         // A lone word: no break opportunity between the line's start and
         // its end.
         if (forced && pred.position == previous) penalty += runtCost;
-        if (hyphen) penalty += hyphenPenalty();
+        if (hyphen) penalty += hyphenCost ??= hyphenPenalty();
         if (dash && pred.dash) penalty += hyphenationCost;
         // A break's own cost (none of Typst's: a break between the
         // characters of a word too long for a line, say).

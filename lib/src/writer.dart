@@ -20,6 +20,7 @@ final class PdfWriterOptions {
     this.deterministic = false,
     this.creationDate,
     this.compressionLevel = 6,
+    this.zlib,
   });
 
   /// Whether stream data is compressed with Flate.
@@ -40,6 +41,30 @@ final class PdfWriterOptions {
 
   /// The Flate level (1–9).
   final int compressionLevel;
+
+  /// The zlib codec that compresses streams and reads PNG data: libpdf's
+  /// own by default; a faster native one where the platform has it (the
+  /// Dart VM's `ZLibCodec`). Its output only needs to be valid zlib data.
+  final ZlibCodec? zlib;
+
+  /// [data] compressed in zlib format at [compressionLevel].
+  Uint8List encodeZlib(List<int> data) =>
+      zlib?.encode(data, compressionLevel) ??
+      zlibEncode(data, level: compressionLevel);
+
+  /// The zlib-format [data] decompressed.
+  Uint8List decodeZlib(List<int> data) =>
+      zlib?.decode(data) ?? zlibDecode(data);
+}
+
+/// A zlib codec to compress and decompress with in place of libpdf's own
+/// ([PdfWriterOptions.zlib]).
+abstract interface class ZlibCodec {
+  /// [data] compressed in zlib format at [level] (1–9).
+  Uint8List encode(List<int> data, int level);
+
+  /// The zlib-format [data] decompressed.
+  Uint8List decode(List<int> data);
 }
 
 /// Document information (ISO 32000-2, 14.3.3), also written as XMP
@@ -180,7 +205,7 @@ final class PdfWriter {
         object.dict['Filter'] != null) {
       return object;
     }
-    final compressed = zlibEncode(object.data, level: options.compressionLevel);
+    final compressed = options.encodeZlib(object.data);
     if (compressed.length >= object.data.length) return object;
     return PdfStream(
       compressed,
