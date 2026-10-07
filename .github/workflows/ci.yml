@@ -22,6 +22,8 @@ jobs:
       uses: dart-lang/setup-dart@v1
     - name: Install Dart dependencies
       run: dart pub get
+    - name: Install the comparison benchmark's dependencies
+      run: dart pub get --directory benchmark/compare
     - name: Analyze Dart code
       run: dart analyze --fatal-infos .
     - name: Check Dart formatting
